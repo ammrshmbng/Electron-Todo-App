@@ -1,5 +1,14 @@
-export default function App() {
-  console.log("React renderer");
+import React from 'react';
+import { Outlet } from 'react-router-dom';
+import Sidebar from './components/Sidebar';
 
-  return <h1>Hello Electron + React</h1>;
+export default function App() {
+  return (
+    <div className="app-container">
+      <Sidebar />
+      <main className="main-content">
+        <Outlet />
+      </main>
+    </div>
+  );
 }
