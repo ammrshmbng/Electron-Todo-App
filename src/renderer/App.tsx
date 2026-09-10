@@ -1,5 +1,5 @@
 export default function App() {
-  return (
-    <h1>Hello Electron + React</h1>
-  );
+  console.log("React renderer");
+
+  return <h1>Hello Electron + React</h1>;
 }
