@@ -4,8 +4,15 @@
   box-sizing: border-box;
 }
 
+html,
+body,
+#root {
+  height: 100%;
+}
+
 body {
   font-family: sans-serif;
+  color: #222;
 }
 
 .app-container {
@@ -15,28 +22,43 @@ body {
 
 .sidebar {
   width: 220px;
-  padding: 16px;
-  background: #2c3e50;
-  color: white;
-}
-
-.sidebar nav {
+  flex-shrink: 0;
+  background: #1f2937;
+  color: #fff;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 12px;
 }
 
-.sidebar a {
-  color: #ecf0f1;
+.sidebar-header {
+  padding: 20px 16px;
+  font-weight: 700;
+  border-bottom: 1px solid #374151;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 0;
+}
+
+.sidebar-nav a {
+  padding: 10px 16px;
+  color: #e5e7eb;
   text-decoration: none;
 }
 
-.sidebar a.active {
-  color: #3498db;
+.sidebar-nav a:hover {
+  background: #374151;
+}
+
+.sidebar-nav a.active {
+  background: #111827;
+  color: #60a5fa;
 }
 
 .main-content {
   flex: 1;
   padding: 24px;
+  background: #fff;
+  overflow: auto;
 }
