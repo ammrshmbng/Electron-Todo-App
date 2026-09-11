@@ -1,32 +1,20 @@
 import React from 'react';
 import { createHashRouter, RouterProvider } from 'react-router-dom';
 import App from '../App';
-import Dashboard from '../pages/Dashboard';
-import Todos from '../pages/Todos';
-import TodoDetail from '../pages/TodoDetail';
-import Settings from '../pages/Settings';
+import DashboardPage from '../pages/DashboardPage';
+import TodosPage from '../pages/TodosPage';
+import TodoDetailPage from '../pages/TodoDetailPage';
+import SettingsPage from '../pages/SettingsPage';
 
 const router = createHashRouter([
   {
     path: '/',
     element: <App />,
     children: [
-      {
-        index: true,
-        element: <Dashboard />,
-      },
-      {
-        path: 'todos',
-        element: <Todos />,
-      },
-      {
-        path: 'todos/:id',
-        element: <TodoDetail />,
-      },
-      {
-        path: 'settings',
-        element: <Settings />,
-      },
+      { index: true, element: <DashboardPage /> },
+      { path: 'todos', element: <TodosPage /> },
+      { path: 'todos/:id', element: <TodoDetailPage /> },
+      { path: 'settings', element: <SettingsPage /> },
     ],
   },
 ]);

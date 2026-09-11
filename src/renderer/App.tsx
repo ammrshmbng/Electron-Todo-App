@@ -7,6 +7,7 @@ export default function App() {
     <div className="app-container">
       <Sidebar />
       <main className="main-content">
+        <p>hello world App</p>
         <Outlet />
       </main>
     </div>
