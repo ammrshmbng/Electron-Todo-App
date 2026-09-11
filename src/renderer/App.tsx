@@ -1,13 +1,12 @@
-import React from 'react';
-import { Outlet } from 'react-router-dom';
-import Sidebar from './components/Sidebar';
+import { Outlet } from "react-router-dom";
+import Sidebar from "./components/Sidebar";
 
 export default function App() {
   return (
-    <div className="app-container">
+    <div>
       <Sidebar />
-      <main className="main-content">
-        <p>hello world App</p>
+
+      <main>
         <Outlet />
       </main>
     </div>

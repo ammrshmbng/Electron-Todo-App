@@ -1,5 +1,7 @@
-import React from 'react';
+import { useParams } from "react-router-dom";
 
 export default function TodoDetailPage() {
-  return <h1>hello world TodoDetailPage</h1>;
+  const { id } = useParams();
+
+  return <h1>Todo {id}</h1>;
 }
