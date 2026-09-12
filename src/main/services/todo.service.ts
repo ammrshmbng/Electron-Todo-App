@@ -2,32 +2,22 @@ import type {
   CreateTodoInput,
   UpdateTodoInput,
 } from "../../shared/contracts/todo-api";
+
 import type { Todo } from "../../shared/types/todo";
 
+import { TodoRepository } from "../repositories/todo.repository";
+
 export class TodoService {
-  private todos: Todo[] = [
-    {
-      id: crypto.randomUUID(),
-      title: "Belajar Electron",
-      completed: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: crypto.randomUUID(),
-      title: "Belajar IPC",
-      completed: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-  ];
+  constructor(
+    private readonly repository: TodoRepository,
+  ) {}
 
   getAll(): Todo[] {
-    return this.todos;
+    return this.repository.getAll();
   }
 
   getById(id: string): Todo | null {
-    return this.todos.find((todo) => todo.id === id) ?? null;
+    return this.repository.getById(id);
   }
 
   create(input: CreateTodoInput): Todo {
@@ -35,50 +25,23 @@ export class TodoService {
       throw new Error("Todo title is required");
     }
 
-    const now = new Date().toISOString();
-
-    const todo: Todo = {
-      id: crypto.randomUUID(),
+    return this.repository.create({
       title: input.title.trim(),
-      completed: false,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    this.todos.push(todo);
-
-    return todo;
+    });
   }
 
   update(input: UpdateTodoInput): Todo {
-    const todo = this.todos.find(
-      (todo) => todo.id === input.id,
-    );
-
-    if (!todo) {
-      throw new Error("Todo not found");
-    }
-
     if (!input.title.trim()) {
       throw new Error("Todo title is required");
     }
 
-    todo.title = input.title.trim();
-    todo.completed = input.completed;
-    todo.updatedAt = new Date().toISOString();
-
-    return todo;
+    return this.repository.update({
+      ...input,
+      title: input.title.trim(),
+    });
   }
 
   delete(id: string): void {
-    const index = this.todos.findIndex(
-      (todo) => todo.id === id,
-    );
-
-    if (index === -1) {
-      throw new Error("Todo not found");
-    }
-
-    this.todos.splice(index, 1);
+    return this.repository.delete(id);
   }
 }

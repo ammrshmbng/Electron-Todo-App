@@ -5,40 +5,53 @@ import type {
   UpdateTodoInput,
 } from "../../shared/contracts/todo-api";
 
+import { getDatabase } from "../database/database";
+import { TodoRepository } from "../repositories/todo.repository";
 import { TodoService } from "../services/todo.service";
 
-const todoService = new TodoService();
+let todoService: TodoService | null = null;
+
+function getTodoService(): TodoService {
+  if (!todoService) {
+    const database = getDatabase();
+    const repository = new TodoRepository(database);
+
+    todoService = new TodoService(repository);
+  }
+
+  return todoService;
+}
 
 export function registerTodoIPC(): void {
   ipcMain.handle("todo:get-all", () => {
-    return todoService.getAll();
+    return getTodoService().getAll();
   });
 
   ipcMain.handle(
     "todo:get-by-id",
     (_, id: string) => {
-      return todoService.getById(id);
+      return getTodoService().getById(id);
     },
   );
 
   ipcMain.handle(
     "todo:create",
     (_, input: CreateTodoInput) => {
-      return todoService.create(input);
+      return getTodoService().create(input);
     },
   );
 
   ipcMain.handle(
     "todo:update",
     (_, input: UpdateTodoInput) => {
-      return todoService.update(input);
+      return getTodoService().update(input);
     },
   );
 
   ipcMain.handle(
     "todo:delete",
     (_, id: string) => {
-      return todoService.delete(id);
+      return getTodoService().delete(id);
     },
   );
 }
