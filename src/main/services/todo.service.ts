@@ -19,28 +19,11 @@ export class TodoService {
   }
 
   create(input: CreateTodoInput): Todo {
-    const title = input.title.trim();
-
-    if (!title) {
-      throw new Error("Todo title is required");
-    }
-
-    return this.repository.create({
-      title,
-    });
+    return this.repository.create(input);
   }
 
   update(input: UpdateTodoInput): Todo {
-    const title = input.title.trim();
-
-    if (!title) {
-      throw new Error("Todo title is required");
-    }
-
-    return this.repository.update({
-      ...input,
-      title,
-    });
+    return this.repository.update(input);
   }
 
   delete(id: string): void {

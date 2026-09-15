@@ -43,7 +43,7 @@ export default function TodosPage() {
     loadTodos();
   }, [setTodos]);
 
-  async function handleCreate() {
+  /* async function handleCreate() {
     setIsSaving(true);
     setError(null);
 
@@ -58,8 +58,29 @@ export default function TodosPage() {
     }
 
     setIsSaving(false);
+  } */
+
+      /* handle error test */
+  async function handleCreate() {
+    setIsSaving(true);
+    setError(null);
+
+    const result = await window.todoAPI.create({
+      title: "",
+    });
+
+    if (!result.success) {
+      setError(result.error.message);
+      setIsSaving(false);
+      return;
+    }
+
+    setTodos((current) => [...current, result.data]);
+
+    setIsSaving(false);
   }
 
+  
   async function handleToggle(id: string) {
     setIsSaving(true);
     setError(null);

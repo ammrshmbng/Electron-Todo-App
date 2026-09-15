@@ -16,13 +16,12 @@ interface TodoRow {
 }
 
 export class TodoRepository {
-  constructor(
-    private readonly db: Database.Database,
-  ) {}
+  constructor(private readonly db: Database.Database) {}
 
   getAll(): Todo[] {
     const rows = this.db
-      .prepare(`
+      .prepare(
+        `
         SELECT
           id,
           title,
@@ -31,7 +30,8 @@ export class TodoRepository {
           updated_at
         FROM todos
         ORDER BY created_at DESC
-      `)
+      `,
+      )
       .all() as TodoRow[];
 
     return rows.map(mapTodoRow);
@@ -39,7 +39,8 @@ export class TodoRepository {
 
   getById(id: string): Todo | null {
     const row = this.db
-      .prepare(`
+      .prepare(
+        `
         SELECT
           id,
           title,
@@ -48,7 +49,8 @@ export class TodoRepository {
           updated_at
         FROM todos
         WHERE id = ?
-      `)
+      `,
+      )
       .get(id) as TodoRow | undefined;
 
     return row ? mapTodoRow(row) : null;
@@ -59,14 +61,15 @@ export class TodoRepository {
 
     const todo: Todo = {
       id: crypto.randomUUID(),
-      title: input.title.trim(),
+      title: input.title,
       completed: false,
       createdAt: now,
       updatedAt: now,
     };
 
     this.db
-      .prepare(`
+      .prepare(
+        `
         INSERT INTO todos (
           id,
           title,
@@ -75,7 +78,8 @@ export class TodoRepository {
           updated_at
         )
         VALUES (?, ?, ?, ?, ?)
-      `)
+      `,
+      )
       .run(
         todo.id,
         todo.title,
@@ -97,24 +101,21 @@ export class TodoRepository {
     const updatedAt = new Date().toISOString();
 
     this.db
-      .prepare(`
+      .prepare(
+        `
         UPDATE todos
         SET
           title = ?,
           completed = ?,
           updated_at = ?
         WHERE id = ?
-      `)
-      .run(
-        input.title.trim(),
-        input.completed ? 1 : 0,
-        updatedAt,
-        input.id,
-      );
+      `,
+      )
+      .run(input.title, input.completed ? 1 : 0, updatedAt, input.id);
 
     return {
       ...existing,
-      title: input.title.trim(),
+      title: input.title,
       completed: input.completed,
       updatedAt,
     };
@@ -122,10 +123,12 @@ export class TodoRepository {
 
   delete(id: string): void {
     const result = this.db
-      .prepare(`
+      .prepare(
+        `
         DELETE FROM todos
         WHERE id = ?
-      `)
+      `,
+      )
       .run(id);
 
     if (result.changes === 0) {
