@@ -4,8 +4,22 @@ import type {
 } from "../../shared/contracts/todo-api";
 
 import type { Todo } from "../../shared/types/todo";
+import { getDatabase } from "../database/database";
 
 import { TodoRepository } from "../repositories/todo.repository";
+
+let todoService: TodoService | null = null;
+
+export function getTodoService(): TodoService {
+  if (!todoService) {
+    const database = getDatabase();
+    const repository = new TodoRepository(database);
+
+    todoService = new TodoService(repository);
+  }
+
+  return todoService;
+}
 
 export class TodoService {
   constructor(private readonly repository: TodoRepository) {}
@@ -26,7 +40,7 @@ export class TodoService {
     return this.repository.update(input);
   }
 
-  delete(id: string): void {
+  delete(id: string): void | boolean {
     this.repository.delete(id);
   }
 }

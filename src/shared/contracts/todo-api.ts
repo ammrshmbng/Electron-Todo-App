@@ -13,20 +13,10 @@ export interface UpdateTodoInput {
 
 export interface TodoAPI {
   getAll(): Promise<IPCResult<Todo[]>>;
+  getById(id: string): Promise<IPCResult<Todo | null>>;
+  create(input: CreateTodoInput): Promise<IPCResult<Todo>>;
+  update(input: UpdateTodoInput): Promise<IPCResult<Todo>>;
+  delete(id: string): Promise<IPCResult<null>>;
 
-  getById(
-    id: string,
-  ): Promise<IPCResult<Todo | null>>;
-
-  create(
-    input: CreateTodoInput,
-  ): Promise<IPCResult<Todo>>;
-
-  update(
-    input: UpdateTodoInput,
-  ): Promise<IPCResult<Todo>>;
-
-  delete(
-    id: string,
-  ): Promise<IPCResult<null>>;
+  onChanged(callback: () => void): () => void;
 }

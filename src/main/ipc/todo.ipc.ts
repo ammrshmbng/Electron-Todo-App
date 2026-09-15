@@ -1,171 +1,186 @@
-import { ipcMain } from "electron/main";
-
-import type {
-  CreateTodoInput,
-  UpdateTodoInput,
-} from "../../shared/contracts/todo-api";
-
-import type { IPCResult } from "../../shared/contracts/result";
-
-import type { Todo } from "../../shared/types/todo";
-
+import { BrowserWindow, ipcMain } from "electron";
+import { getTodoService } from "../services/todo.service";
 import {
   createTodoInputSchema,
   todoIdSchema,
   updateTodoInputSchema,
 } from "../../shared/validation/todo.schema";
 
-import { getDatabase } from "../database/database";
-import { TodoRepository } from "../repositories/todo.repository";
-import { TodoService } from "../services/todo.service";
-
-let todoService: TodoService | null = null;
-
-function getTodoService(): TodoService {
-  if (!todoService) {
-    const database = getDatabase();
-    const repository = new TodoRepository(database);
-
-    todoService = new TodoService(repository);
+function notifyTodoChanged() {
+  for (const window of BrowserWindow.getAllWindows()) {
+    window.webContents.send("todo:changed");
   }
-
-  return todoService;
 }
 
-function success<T>(data: T): IPCResult<T> {
-  return {
-    success: true,
-    data,
-  };
-}
+export function registerTodoIPC() {
+  const todoService = getTodoService();
 
-function failure<T>(code: string, message: string): IPCResult<T> {
-  return {
-    success: false,
-    error: {
-      code,
-      message,
-    },
-  };
-}
-
-function handleError<T>(error: unknown): IPCResult<T> {
-  console.error(error);
-
-  if (error instanceof Error && error.message === "Todo not found") {
-    return failure("TODO_NOT_FOUND", "Todo not found");
-  }
-
-  if (error instanceof Error && error.message === "Todo title is required") {
-    return failure("INVALID_TODO", "Todo title is required");
-  }
-
-  return failure("INTERNAL_ERROR", "An unexpected error occurred");
-}
-
-function validateTodoId(value: unknown): IPCResult<string> {
-  const result = todoIdSchema.safeParse(value);
-
-  if (!result.success) {
-    return failure("INVALID_TODO_ID", "Invalid todo id");
-  }
-
-  return success(result.data);
-}
-
-function validateCreateTodoInput(value: unknown): IPCResult<CreateTodoInput> {
-  const result = createTodoInputSchema.safeParse(value);
-
-  if (!result.success) {
-    return failure(
-      "INVALID_TODO",
-      result.error.issues[0]?.message ?? "Invalid todo input",
-    );
-  }
-
-  return success(result.data);
-}
-
-function validateUpdateTodoInput(value: unknown): IPCResult<UpdateTodoInput> {
-  const result = updateTodoInputSchema.safeParse(value);
-
-  if (!result.success) {
-    return failure(
-      "INVALID_TODO",
-      result.error.issues[0]?.message ?? "Invalid todo input",
-    );
-  }
-
-  return success(result.data);
-}
-
-export function registerTodoIPC(): void {
-  ipcMain.handle("todo:get-all", (): IPCResult<Todo[]> => {
+  ipcMain.handle("todo:get-all", async () => {
     try {
-      return success(getTodoService().getAll());
-    } catch (error) {
-      return handleError(error);
+      const todos = todoService.getAll();
+
+      return {
+        success: true,
+        data: todos,
+      };
+    } catch {
+      return {
+        success: false,
+        error: {
+          code: "INTERNAL_ERROR",
+          message: "Failed to get todos",
+        },
+      };
     }
   });
 
-  ipcMain.handle(
-    "todo:get-by-id",
-    (_event, id: unknown): IPCResult<Todo | null> => {
-      try {
-        const validation = validateTodoId(id);
+  ipcMain.handle("todo:get-by-id", async (_event, rawId: unknown) => {
+    const validation = todoIdSchema.safeParse(rawId);
 
-        if (!validation.success) {
-          return validation;
-        }
+    if (!validation.success) {
+      return {
+        success: false,
+        error: {
+          code: "INVALID_TODO_ID",
+          message: "Invalid todo id",
+        },
+      };
+    }
 
-        return success(getTodoService().getById(validation.data));
-      } catch (error) {
-        return handleError(error);
-      }
-    },
-  );
-
-  ipcMain.handle("todo:create", (_event, input: unknown): IPCResult<Todo> => {
     try {
-      const validation = validateCreateTodoInput(input);
+      const todo = todoService.getById(validation.data);
 
-      if (!validation.success) {
-        return validation;
-      }
-
-      return success(getTodoService().create(validation.data));
-    } catch (error) {
-      return handleError(error);
+      return {
+        success: true,
+        data: todo,
+      };
+    } catch {
+      return {
+        success: false,
+        error: {
+          code: "INTERNAL_ERROR",
+          message: "Failed to get todo",
+        },
+      };
     }
   });
 
-  ipcMain.handle("todo:update", (_event, input: unknown): IPCResult<Todo> => {
+  ipcMain.handle("todo:create", async (_event, rawInput: unknown) => {
+    const validation = createTodoInputSchema.safeParse(rawInput);
+
+    if (!validation.success) {
+      return {
+        success: false,
+        error: {
+          code: "INVALID_TODO",
+          message: validation.error.issues[0]?.message ?? "Invalid todo",
+        },
+      };
+    }
+
     try {
-      const validation = validateUpdateTodoInput(input);
+      const todo = todoService.create(validation.data);
 
-      if (!validation.success) {
-        return validation;
-      }
+      notifyTodoChanged();
 
-      return success(getTodoService().update(validation.data));
-    } catch (error) {
-      return handleError(error);
+      return {
+        success: true,
+        data: todo,
+      };
+    } catch {
+      return {
+        success: false,
+        error: {
+          code: "INTERNAL_ERROR",
+          message: "Failed to create todo",
+        },
+      };
     }
   });
 
-  ipcMain.handle("todo:delete", (_event, id: unknown): IPCResult<null> => {
-    try {
-      const validation = validateTodoId(id);
+  ipcMain.handle("todo:update", async (_event, rawInput: unknown) => {
+    const validation = updateTodoInputSchema.safeParse(rawInput);
 
-      if (!validation.success) {
-        return validation;
+    if (!validation.success) {
+      return {
+        success: false,
+        error: {
+          code: "INVALID_TODO",
+          message: validation.error.issues[0]?.message ?? "Invalid todo",
+        },
+      };
+    }
+
+    try {
+      const todo = todoService.update(validation.data);
+
+      if (!todo) {
+        return {
+          success: false,
+          error: {
+            code: "TODO_NOT_FOUND",
+            message: "Todo not found",
+          },
+        };
       }
 
-      getTodoService().delete(validation.data);
+      notifyTodoChanged();
 
-      return success(null);
-    } catch (error) {
-      return handleError(error);
+      return {
+        success: true,
+        data: todo,
+      };
+    } catch {
+      return {
+        success: false,
+        error: {
+          code: "INTERNAL_ERROR",
+          message: "Failed to update todo",
+        },
+      };
+    }
+  });
+
+  ipcMain.handle("todo:delete", async (_event, rawId: unknown) => {
+    const validation = todoIdSchema.safeParse(rawId);
+
+    if (!validation.success) {
+      return {
+        success: false,
+        error: {
+          code: "INVALID_TODO_ID",
+          message: "Invalid todo id",
+        },
+      };
+    }
+
+    try {
+      const deleted = todoService.delete(validation.data);
+
+      if (!deleted) {
+        return {
+          success: false,
+          error: {
+            code: "TODO_NOT_FOUND",
+            message: "Todo not found",
+          },
+        };
+      }
+
+      notifyTodoChanged();
+
+      return {
+        success: true,
+        data: null,
+      };
+    } catch {
+      return {
+        success: false,
+        error: {
+          code: "INTERNAL_ERROR",
+          message: "Failed to delete todo",
+        },
+      };
     }
   });
 }
