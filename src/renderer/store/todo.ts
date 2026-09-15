@@ -1,33 +1,12 @@
 import { atom, selector } from "recoil";
+
 import type { Todo } from "../../shared/types/todo";
 
 export type TodoFilter = "all" | "active" | "completed";
 
 export const todosState = atom<Todo[]>({
   key: "todos",
-  default: [
-    {
-      id: "1",
-      title: "Belajar Electron",
-      completed: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: "2",
-      title: "Belajar Recoil",
-      completed: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: "3",
-      title: "Membuat Todo App",
-      completed: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-  ],
+  default: [],
 });
 
 export const selectedTodoIdState = atom<string | null>({
@@ -47,9 +26,11 @@ export const todoFilterState = atom<TodoFilter>({
 
 export const filteredTodosState = selector<Todo[]>({
   key: "filteredTodos",
+
   get: ({ get }) => {
     const todos = get(todosState);
-    const query = get(searchQueryState).toLowerCase();
+    const query = get(searchQueryState).trim().toLowerCase();
+
     const filter = get(todoFilterState);
 
     return todos.filter((todo) => {
@@ -65,11 +46,37 @@ export const filteredTodosState = selector<Todo[]>({
   },
 });
 
+export const selectedTodoState = selector<Todo | null>({
+  key: "selectedTodo",
+
+  get: ({ get }) => {
+    const todos = get(todosState);
+    const selectedId = get(selectedTodoIdState);
+
+    if (!selectedId) {
+      return null;
+    }
+
+    return todos.find((todo) => todo.id === selectedId) ?? null;
+  },
+});
+
 export const completedTodosCountState = selector<number>({
   key: "completedTodosCount",
+
   get: ({ get }) => {
     const todos = get(todosState);
 
     return todos.filter((todo) => todo.completed).length;
+  },
+});
+
+export const activeTodosCountState = selector<number>({
+  key: "activeTodosCount",
+
+  get: ({ get }) => {
+    const todos = get(todosState);
+
+    return todos.filter((todo) => !todo.completed).length;
   },
 });

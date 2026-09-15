@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+import { Link, useNavigate } from "react-router-dom";
+
 import { useRecoilState, useRecoilValue } from "recoil";
 
 import {
@@ -10,6 +12,8 @@ import {
 } from "../store/todo";
 
 export default function TodosPage() {
+  const navigate = useNavigate();
+
   const [todos, setTodos] = useRecoilState(todosState);
 
   const filteredTodos = useRecoilValue(filteredTodosState);
@@ -31,19 +35,25 @@ export default function TodosPage() {
 
       const result = await window.todoAPI.getAll();
 
-      if (result.success === true) {
-        setTodos(result.data);
-        setIsLoading(false);
-      } else if (result.success === false) {
+      if (!result.success) {
         setError(result.error.message);
+
         setIsLoading(false);
+        return;
       }
+
+      setTodos(result.data);
+      setIsLoading(false);
     }
 
     loadTodos();
   }, [setTodos]);
 
-  /* async function handleCreate() {
+  function addTodoToState(todo: (typeof todos)[number]) {
+    setTodos((current) => [...current, todo]);
+  }
+
+  async function handleCreate() {
     setIsSaving(true);
     setError(null);
 
@@ -51,36 +61,20 @@ export default function TodosPage() {
       title: `Todo ${todos.length + 1}`,
     });
 
-    if (result.success) {
-      setTodos((current) => [...current, result.data]);
-    } else {
-      setError(result.error.message);
-    }
-
-    setIsSaving(false);
-  } */
-
-      /* handle error test */
-  async function handleCreate() {
-    setIsSaving(true);
-    setError(null);
-
-    const result = await window.todoAPI.create({
-      title: "",
-    });
-
     if (!result.success) {
       setError(result.error.message);
+
       setIsSaving(false);
       return;
     }
 
-    setTodos((current) => [...current, result.data]);
+    addTodoToState(result.data);
 
     setIsSaving(false);
+
+    navigate(`/todos/${result.data.id}`);
   }
 
-  
   async function handleToggle(id: string) {
     setIsSaving(true);
     setError(null);
@@ -89,33 +83,35 @@ export default function TodosPage() {
 
     if (!result.success) {
       setError(result.error.message);
+
       setIsSaving(false);
       return;
     }
 
-    const todo = result.data;
-
-    if (!todo) {
+    if (!result.data) {
       setError("Todo not found");
       setIsSaving(false);
       return;
     }
 
     const updateResult = await window.todoAPI.update({
-      id: todo.id,
-      title: todo.title,
-      completed: !todo.completed,
+      id: result.data.id,
+      title: result.data.title,
+      completed: !result.data.completed,
     });
 
-    if (updateResult.success) {
-      setTodos((current) =>
-        current.map((item) =>
-          item.id === updateResult.data.id ? updateResult.data : item,
-        ),
-      );
-    } else {
+    if (!updateResult.success) {
       setError(updateResult.error.message);
+
+      setIsSaving(false);
+      return;
     }
+
+    setTodos((current) =>
+      current.map((todo) =>
+        todo.id === updateResult.data.id ? updateResult.data : todo,
+      ),
+    );
 
     setIsSaving(false);
   }
@@ -126,11 +122,14 @@ export default function TodosPage() {
 
     const result = await window.todoAPI.delete(id);
 
-    if (result.success) {
-      setTodos((current) => current.filter((todo) => todo.id !== id));
-    } else {
+    if (!result.success) {
       setError(result.error.message);
+
+      setIsSaving(false);
+      return;
     }
+
+    setTodos((current) => current.filter((todo) => todo.id !== id));
 
     setIsSaving(false);
   }
@@ -139,9 +138,11 @@ export default function TodosPage() {
     <div>
       <h1>Todos</h1>
 
-      <button onClick={handleCreate} disabled={isSaving}>
-        {isSaving ? "Saving..." : "Create Todo"}
-      </button>
+      <div>
+        <button onClick={handleCreate} disabled={isLoading || isSaving}>
+          {isSaving ? "Saving..." : "Create Todo"}
+        </button>
+      </div>
 
       <div>
         <input
@@ -149,7 +150,7 @@ export default function TodosPage() {
           onChange={(event) => {
             setSearchQuery(event.target.value);
           }}
-          placeholder="Search..."
+          placeholder="Search todos..."
           disabled={isLoading}
         />
 
@@ -168,24 +169,21 @@ export default function TodosPage() {
         </select>
       </div>
 
-      {isLoading && <p>Loading todos...</p>}
-
       {error && <p>Error: {error}</p>}
 
-      {!isLoading && filteredTodos.length === 0 && <p>No todos</p>}
+      {isLoading && <p>Loading todos...</p>}
+
+      {!isLoading && filteredTodos.length === 0 && <p>No todos found.</p>}
 
       {!isLoading && filteredTodos.length > 0 && (
         <ul>
           {filteredTodos.map((todo) => (
             <li key={todo.id}>
-              <span>
-                {todo.title} {todo.completed ? "✅" : "⬜"}
-              </span>
-
+              <Link to={`/todos/${todo.id}`}>{todo.title}</Link>{" "}
+              <span>{todo.completed ? "✅" : "⬜"}</span>{" "}
               <button onClick={() => handleToggle(todo.id)} disabled={isSaving}>
                 Toggle
-              </button>
-
+              </button>{" "}
               <button onClick={() => handleDelete(todo.id)} disabled={isSaving}>
                 Delete
               </button>
