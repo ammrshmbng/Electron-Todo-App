@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+
 import { useRecoilState, useRecoilValue } from "recoil";
 
 import {
@@ -17,49 +18,109 @@ export default function TodosPage() {
 
   const [filter, setFilter] = useRecoilState(todoFilterState);
 
+  const [isLoading, setIsLoading] = useState(true);
+
+  const [error, setError] = useState<string | null>(null);
+
+  const [isSaving, setIsSaving] = useState(false);
+
   useEffect(() => {
-  window.todoAPI.getAll().then((todos) => {
-    setTodos(todos);
-  });
-}, [setTodos]);
+    async function loadTodos() {
+      setIsLoading(true);
+      setError(null);
+
+      const result = await window.todoAPI.getAll();
+
+      if (result.success === true) {
+        setTodos(result.data);
+        setIsLoading(false);
+      } else if (result.success === false) {
+        setError(result.error.message);
+        setIsLoading(false);
+      }
+    }
+
+    loadTodos();
+  }, [setTodos]);
 
   async function handleCreate() {
-    const todo = await window.todoAPI.create({
+    setIsSaving(true);
+    setError(null);
+
+    const result = await window.todoAPI.create({
       title: `Todo ${todos.length + 1}`,
     });
 
-    setTodos((current) => [...current, todo]);
+    if (result.success) {
+      setTodos((current) => [...current, result.data]);
+    } else {
+      setError(result.error.message);
+    }
+
+    setIsSaving(false);
   }
 
   async function handleToggle(id: string) {
-    const todo = await window.todoAPI.getById(id);
+    setIsSaving(true);
+    setError(null);
 
-    if (!todo) {
+    const result = await window.todoAPI.getById(id);
+
+    if (!result.success) {
+      setError(result.error.message);
+      setIsSaving(false);
       return;
     }
 
-    const updatedTodo = await window.todoAPI.update({
+    const todo = result.data;
+
+    if (!todo) {
+      setError("Todo not found");
+      setIsSaving(false);
+      return;
+    }
+
+    const updateResult = await window.todoAPI.update({
       id: todo.id,
       title: todo.title,
       completed: !todo.completed,
     });
 
-    setTodos((current) =>
-      current.map((item) => (item.id === updatedTodo.id ? updatedTodo : item)),
-    );
+    if (updateResult.success) {
+      setTodos((current) =>
+        current.map((item) =>
+          item.id === updateResult.data.id ? updateResult.data : item,
+        ),
+      );
+    } else {
+      setError(updateResult.error.message);
+    }
+
+    setIsSaving(false);
   }
 
   async function handleDelete(id: string) {
-    await window.todoAPI.delete(id);
+    setIsSaving(true);
+    setError(null);
 
-    setTodos((current) => current.filter((todo) => todo.id !== id));
+    const result = await window.todoAPI.delete(id);
+
+    if (result.success) {
+      setTodos((current) => current.filter((todo) => todo.id !== id));
+    } else {
+      setError(result.error.message);
+    }
+
+    setIsSaving(false);
   }
 
   return (
     <div>
       <h1>Todos</h1>
 
-      <button onClick={handleCreate}>Create Todo</button>
+      <button onClick={handleCreate} disabled={isSaving}>
+        {isSaving ? "Saving..." : "Create Todo"}
+      </button>
 
       <div>
         <input
@@ -68,6 +129,7 @@ export default function TodosPage() {
             setSearchQuery(event.target.value);
           }}
           placeholder="Search..."
+          disabled={isLoading}
         />
 
         <select
@@ -75,26 +137,41 @@ export default function TodosPage() {
           onChange={(event) => {
             setFilter(event.target.value as "all" | "active" | "completed");
           }}
+          disabled={isLoading}
         >
           <option value="all">All</option>
+
           <option value="active">Active</option>
+
           <option value="completed">Completed</option>
         </select>
       </div>
 
-      <ul>
-        {filteredTodos.map((todo) => (
-          <li key={todo.id}>
-            <span>
-              {todo.title} {todo.completed ? "✅" : "⬜"}
-            </span>
+      {isLoading && <p>Loading todos...</p>}
 
-            <button onClick={() => handleToggle(todo.id)}>Toggle</button>
+      {error && <p>Error: {error}</p>}
 
-            <button onClick={() => handleDelete(todo.id)}>Delete</button>
-          </li>
-        ))}
-      </ul>
+      {!isLoading && filteredTodos.length === 0 && <p>No todos</p>}
+
+      {!isLoading && filteredTodos.length > 0 && (
+        <ul>
+          {filteredTodos.map((todo) => (
+            <li key={todo.id}>
+              <span>
+                {todo.title} {todo.completed ? "✅" : "⬜"}
+              </span>
+
+              <button onClick={() => handleToggle(todo.id)} disabled={isSaving}>
+                Toggle
+              </button>
+
+              <button onClick={() => handleDelete(todo.id)} disabled={isSaving}>
+                Delete
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

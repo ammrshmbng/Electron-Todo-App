@@ -8,9 +8,7 @@ import type { Todo } from "../../shared/types/todo";
 import { TodoRepository } from "../repositories/todo.repository";
 
 export class TodoService {
-  constructor(
-    private readonly repository: TodoRepository,
-  ) {}
+  constructor(private readonly repository: TodoRepository) {}
 
   getAll(): Todo[] {
     return this.repository.getAll();
@@ -21,27 +19,31 @@ export class TodoService {
   }
 
   create(input: CreateTodoInput): Todo {
-    if (!input.title.trim()) {
+    const title = input.title.trim();
+
+    if (!title) {
       throw new Error("Todo title is required");
     }
 
     return this.repository.create({
-      title: input.title.trim(),
+      title,
     });
   }
 
   update(input: UpdateTodoInput): Todo {
-    if (!input.title.trim()) {
+    const title = input.title.trim();
+
+    if (!title) {
       throw new Error("Todo title is required");
     }
 
     return this.repository.update({
       ...input,
-      title: input.title.trim(),
+      title,
     });
   }
 
   delete(id: string): void {
-    return this.repository.delete(id);
+    this.repository.delete(id);
   }
 }
