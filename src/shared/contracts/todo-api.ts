@@ -13,9 +13,13 @@ export interface UpdateTodoInput {
 
 export interface TodoAPI {
   getAll(): Promise<IPCResult<Todo[]>>;
+
   getById(id: string): Promise<IPCResult<Todo | null>>;
+
   create(input: CreateTodoInput): Promise<IPCResult<Todo>>;
+
   update(input: UpdateTodoInput): Promise<IPCResult<Todo>>;
+
   delete(id: string): Promise<IPCResult<null>>;
 
   onChanged(callback: () => void): () => void;
@@ -23,4 +27,14 @@ export interface TodoAPI {
   openTodoDetail(todoId: string): Promise<void>;
 
   onTodoDetailId(callback: (todoId: string) => void): () => void;
+
+  confirm(options: {
+    title: string;
+    message: string;
+    detail?: string;
+  }): Promise<boolean>;
+
+  openFile(): Promise<string | null>;
+
+  notify(options: { title: string; body: string }): Promise<boolean>;
 }

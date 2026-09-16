@@ -25,6 +25,7 @@ contextBridge.exposeInMainWorld("todoAPI", {
     const listener = () => {
       callback();
     };
+
     ipcRenderer.on("todo:changed", listener);
 
     return () => {
@@ -46,5 +47,17 @@ contextBridge.exposeInMainWorld("todoAPI", {
     return () => {
       ipcRenderer.removeListener("todo:detail-id", listener);
     };
+  },
+
+  confirm: (options: { title: string; message: string; detail?: string }) => {
+    return ipcRenderer.invoke("native:confirm", options);
+  },
+
+  openFile: () => {
+    return ipcRenderer.invoke("native:open-file");
+  },
+
+  notify: (options: { title: string; body: string }) => {
+    return ipcRenderer.invoke("native:notify", options);
   },
 });

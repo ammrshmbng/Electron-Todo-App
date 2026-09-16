@@ -12,6 +12,8 @@ export default function TodosPage() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
 
   const loadTodos = async () => {
     setError(null);
@@ -44,13 +46,30 @@ export default function TodosPage() {
   }, []);
 
   const handleCreate = async () => {
+    const title = newTitle.trim();
+
+    if (!title) {
+      setError("Todo title is required");
+      return;
+    }
+
     const result = await window.todoAPI.create({
-      title: `Todo : ${todos.length + 1}`,
+      title,
     });
 
     if (!result.success) {
       setError(result.error.message);
+      return;
     }
+
+    setNewTitle("");
+    setIsCreateOpen(false);
+    setError(null);
+
+    await window.todoAPI.notify({
+      title: "Todo Created",
+      body: `"${result.data.title}" was created successfully.`,
+    });
   };
 
   const handleToggle = async (todo: (typeof todos)[number]) => {
@@ -66,6 +85,16 @@ export default function TodosPage() {
   };
 
   const handleDelete = async (id: string) => {
+    const confirmed = await window.todoAPI.confirm({
+      title: "Delete Todo",
+      message: "Are you sure you want to delete this todo?",
+      detail: "This action cannot be undone.",
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
     const result = await window.todoAPI.delete(id);
 
     if (!result.success) {
@@ -88,8 +117,73 @@ export default function TodosPage() {
       >
         <h1>Todos</h1>
 
-        <button onClick={handleCreate}>Create Todo</button>
+        <button onClick={() => setIsCreateOpen(true)}>Create Todo</button>
       </div>
+
+      {isCreateOpen && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0, 0, 0, 0.4)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 10,
+          }}
+        >
+          <div
+            style={{
+              width: 360,
+              padding: 20,
+              background: "#fff",
+              borderRadius: 8,
+            }}
+          >
+            <h2 style={{ marginBottom: 12 }}>New Todo</h2>
+
+            <input
+              autoFocus
+              type="text"
+              placeholder="Todo title"
+              value={newTitle}
+              onChange={(event) => setNewTitle(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  void handleCreate();
+                }
+
+                if (event.key === "Escape") {
+                  setIsCreateOpen(false);
+                }
+              }}
+              style={{
+                width: "100%",
+                padding: 8,
+                marginBottom: 16,
+              }}
+            />
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: 8,
+              }}
+            >
+              <button
+                onClick={() => {
+                  setIsCreateOpen(false);
+                  setNewTitle("");
+                }}
+              >
+                Cancel
+              </button>
+              <button onClick={() => void handleCreate()}>Create</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {error && (
         <div

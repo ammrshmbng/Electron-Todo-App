@@ -1,10 +1,14 @@
 import { BrowserWindow, ipcMain } from "electron";
+
 import { getTodoService } from "../services/todo.service";
+
 import {
   createTodoInputSchema,
   todoIdSchema,
   updateTodoInputSchema,
 } from "../../shared/validation/todo.schema";
+
+import { registerNativeIPC } from "./native.ipc";
 
 function notifyTodoChanged() {
   for (const window of BrowserWindow.getAllWindows()) {
@@ -13,11 +17,14 @@ function notifyTodoChanged() {
 }
 
 export function registerTodoIPC() {
+  registerNativeIPC();
+
   const todoService = getTodoService();
 
   ipcMain.handle("todo:get-all", async () => {
     try {
       const todos = todoService.getAll();
+
       return {
         success: true,
         data: todos,
@@ -141,8 +148,8 @@ export function registerTodoIPC() {
   });
 
   ipcMain.handle("todo:delete", async (_event, rawId: unknown) => {
-
     const validation = todoIdSchema.safeParse(rawId);
+
     if (!validation.success) {
       return {
         success: false,
@@ -154,7 +161,7 @@ export function registerTodoIPC() {
     }
 
     try {
-      const deleted = todoService.delete(validation.data);
+      todoService.delete(validation.data);
 
       
 
