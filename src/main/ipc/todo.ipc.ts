@@ -18,7 +18,6 @@ export function registerTodoIPC() {
   ipcMain.handle("todo:get-all", async () => {
     try {
       const todos = todoService.getAll();
-
       return {
         success: true,
         data: todos,
@@ -142,8 +141,8 @@ export function registerTodoIPC() {
   });
 
   ipcMain.handle("todo:delete", async (_event, rawId: unknown) => {
-    const validation = todoIdSchema.safeParse(rawId);
 
+    const validation = todoIdSchema.safeParse(rawId);
     if (!validation.success) {
       return {
         success: false,
@@ -157,15 +156,7 @@ export function registerTodoIPC() {
     try {
       const deleted = todoService.delete(validation.data);
 
-      if (!deleted) {
-        return {
-          success: false,
-          error: {
-            code: "TODO_NOT_FOUND",
-            message: "Todo not found",
-          },
-        };
-      }
+      
 
       notifyTodoChanged();
 

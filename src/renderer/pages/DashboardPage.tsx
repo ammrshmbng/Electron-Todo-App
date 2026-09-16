@@ -8,29 +8,12 @@ import {
 } from "../store/todo";
 
 export default function DashboardPage() {
-  const [todos, setTodos] = useRecoilState(todosState);
+  const [todos] = useRecoilState(todosState);
 
   const completed = useRecoilValue(completedTodosCountState);
 
   const active = useRecoilValue(activeTodosCountState);
 
-  useEffect(() => {
-    const loadTodos = async () => {
-      const result = await window.todoAPI.getAll();
-
-      if (result.success) {
-        setTodos(result.data);
-      }
-    };
-
-    void loadTodos();
-
-    const unsubscribe = window.todoAPI.onChanged(() => {
-      void loadTodos();
-    });
-
-    return unsubscribe;
-  }, [setTodos]);
 
   return (
     <div>

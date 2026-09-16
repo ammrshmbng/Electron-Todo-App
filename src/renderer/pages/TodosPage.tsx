@@ -15,7 +15,6 @@ export default function TodosPage() {
 
   const loadTodos = async () => {
     setError(null);
-
     const result = await window.todoAPI.getAll();
 
     if (!result.success) {
@@ -45,14 +44,10 @@ export default function TodosPage() {
   }, []);
 
   const handleCreate = async () => {
-    const title = window.prompt("Todo title");
-
-    if (!title) {
-      return;
-    }
+    
 
     const result = await window.todoAPI.create({
-      title,
+      title: `Todo : ${todos.length+1}`,
     });
 
     if (!result.success) {

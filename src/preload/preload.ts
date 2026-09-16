@@ -1,7 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
 
-
-
 contextBridge.exposeInMainWorld("todoAPI", {
   getAll: () => {
     return ipcRenderer.invoke("todo:get-all");
@@ -27,7 +25,6 @@ contextBridge.exposeInMainWorld("todoAPI", {
     const listener = () => {
       callback();
     };
-
     ipcRenderer.on("todo:changed", listener);
 
     return () => {
