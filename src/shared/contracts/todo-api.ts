@@ -19,4 +19,8 @@ export interface TodoAPI {
   delete(id: string): Promise<IPCResult<null>>;
 
   onChanged(callback: () => void): () => void;
+
+  openTodoDetail(todoId: string): Promise<void>;
+
+  onTodoDetailId(callback: (todoId: string) => void): () => void;
 }

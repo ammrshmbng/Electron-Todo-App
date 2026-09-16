@@ -44,10 +44,8 @@ export default function TodosPage() {
   }, []);
 
   const handleCreate = async () => {
-    
-
     const result = await window.todoAPI.create({
-      title: `Todo : ${todos.length+1}`,
+      title: `Todo : ${todos.length + 1}`,
     });
 
     if (!result.success) {
@@ -123,7 +121,9 @@ export default function TodosPage() {
           />
 
           <span
-            onClick={() => navigate(`/todos/${todo.id}`)}
+            onClick={() => {
+              void window.todoAPI.openTodoDetail(todo.id);
+            }}
             style={{
               cursor: "pointer",
               textDecoration: todo.completed ? "line-through" : "none",

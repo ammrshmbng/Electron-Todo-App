@@ -31,4 +31,20 @@ contextBridge.exposeInMainWorld("todoAPI", {
       ipcRenderer.removeListener("todo:changed", listener);
     };
   },
+
+  openTodoDetail: (todoId: string) => {
+    return ipcRenderer.invoke("window:open-todo-detail", todoId);
+  },
+
+  onTodoDetailId: (callback: (todoId: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, todoId: string) => {
+      callback(todoId);
+    };
+
+    ipcRenderer.on("todo:detail-id", listener);
+
+    return () => {
+      ipcRenderer.removeListener("todo:detail-id", listener);
+    };
+  },
 });
