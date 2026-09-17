@@ -8,6 +8,8 @@ import {
   app,
 } from "electron";
 
+import { todoContextMenuInputSchema } from "../../shared/validation/todo.schema";
+
 const todoFileDialogOptions: Electron.OpenDialogOptions = {
   title: "Open Todo File",
   properties: ["openFile"],
@@ -25,6 +27,21 @@ const todoFileDialogOptions: Electron.OpenDialogOptions = {
 
 function getWindowFromEvent(event: Electron.IpcMainInvokeEvent) {
   return BrowserWindow.fromWebContents(event.sender);
+}
+
+function sendTodoContextMenuAction(
+  sender: Electron.WebContents,
+  action: "open-detail" | "toggle-completed" | "delete",
+  todoId: string,
+) {
+  if (sender.isDestroyed()) {
+    return;
+  }
+
+  sender.send("todo:context-menu-action", {
+    action,
+    todoId,
+  });
 }
 
 export function registerNativeIPC() {
@@ -153,6 +170,55 @@ export function registerNativeIPC() {
     };
   });
 
+  ipcMain.handle("todo:show-context-menu", async (event, rawInput: unknown) => {
+    const validation = todoContextMenuInputSchema.safeParse(rawInput);
+
+    if (!validation.success) {
+      return;
+    }
+
+    const { todoId, completed } = validation.data;
+
+    const window = getWindowFromEvent(event);
+
+    if (!window || window.isDestroyed()) {
+      return;
+    }
+
+    const sender = event.sender;
+
+    const contextMenu = Menu.buildFromTemplate([
+      {
+        label: "Open Details",
+        click: () => {
+          sendTodoContextMenuAction(sender, "open-detail", todoId);
+        },
+      },
+
+      {
+        label: completed ? "Mark as Active" : "Mark as Completed",
+        click: () => {
+          sendTodoContextMenuAction(sender, "toggle-completed", todoId);
+        },
+      },
+
+      {
+        type: "separator",
+      },
+
+      {
+        label: "Delete",
+        click: () => {
+          sendTodoContextMenuAction(sender, "delete", todoId);
+        },
+      },
+    ]);
+
+    contextMenu.popup({
+      window,
+    });
+  });
+
   const menu = Menu.buildFromTemplate([
     {
       label: "File",
@@ -167,14 +233,17 @@ export function registerNativeIPC() {
             void dialog.showOpenDialog(window, todoFileDialogOptions);
           },
         },
+
         {
           type: "separator",
         },
+
         {
           role: "quit",
         },
       ],
     },
+
     {
       label: "View",
       submenu: [
@@ -189,6 +258,7 @@ export function registerNativeIPC() {
         },
       ],
     },
+
     {
       label: "Help",
       submenu: [

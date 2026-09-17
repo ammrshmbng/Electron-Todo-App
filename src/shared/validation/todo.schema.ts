@@ -39,3 +39,11 @@ export const todoSchema = z
 export const todoFileSchema = z
   .array(todoSchema)
   .max(10_000, "Todo file contains too many todos");
+
+export const todoContextMenuInputSchema = z
+  .object({
+    todoId: z.string().min(1),
+
+    completed: z.boolean(),
+  })
+  .strict();

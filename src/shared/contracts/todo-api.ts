@@ -30,6 +30,14 @@ export interface AppInfo {
   };
 }
 
+export type TodoContextMenuAction =
+  "open-detail" | "toggle-completed" | "delete";
+
+export interface TodoContextMenuEvent {
+  action: TodoContextMenuAction;
+  todoId: string;
+}
+
 export interface TodoAPI {
   getAll(): Promise<IPCResult<Todo[]>>;
 
@@ -81,4 +89,13 @@ export interface TodoAPI {
       count: number;
     }>
   >;
+
+  showTodoContextMenu(input: {
+    todoId: string;
+    completed: boolean;
+  }): Promise<void>;
+
+  onTodoContextMenuAction(
+    callback: (event: TodoContextMenuEvent) => void,
+  ): () => void;
 }

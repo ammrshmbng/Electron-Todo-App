@@ -1,26 +1,35 @@
 import { useEffect, useState } from "react";
-import { useRecoilState, useRecoilValue } from "recoil";
-import { useNavigate } from "react-router-dom";
 
-import { todosState, filteredTodosState } from "../store/todo";
+import { useRecoilState, useRecoilValue } from "recoil";
+
+import { filteredTodosState, todosState } from "../store/todo";
+
+import TodoItem from "../components/TodoItem";
+
+import type { Todo } from "../../shared/types/todo";
+import type { TodoContextMenuEvent } from "../../shared/contracts/todo-api";
 
 export default function TodosPage() {
-  const navigate = useNavigate();
+  const [_todos, setTodos] = useRecoilState(todosState);
 
-  const [todos, setTodos] = useRecoilState(todosState);
   const filteredTodos = useRecoilValue(filteredTodosState);
 
   const [loading, setLoading] = useState(true);
+
   const [error, setError] = useState<string | null>(null);
+
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+
   const [newTitle, setNewTitle] = useState("");
 
   const loadTodos = async () => {
     setError(null);
+
     const result = await window.todoAPI.getAll();
 
     if (!result.success) {
       setError(result.error.message);
+
       return;
     }
 
@@ -36,11 +45,75 @@ export default function TodosPage() {
       setLoading(false);
     };
 
-    initialize();
+    void initialize();
 
     const unsubscribe = window.todoAPI.onChanged(async () => {
       await loadTodos();
     });
+
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = window.todoAPI.onTodoContextMenuAction(
+      (event: TodoContextMenuEvent) => {
+        const handleAction = async () => {
+          if (event.action === "open-detail") {
+            await window.todoAPI.openTodoDetail(event.todoId);
+
+            return;
+          }
+
+          const result = await window.todoAPI.getById(event.todoId);
+
+          if (!result.success) {
+            setError(result.error.message);
+
+            return;
+          }
+
+          const todo = result.data;
+
+          if (!todo) {
+            setError("Todo not found");
+
+            return;
+          }
+
+          if (event.action === "toggle-completed") {
+            const updateResult = await window.todoAPI.update({
+              id: todo.id,
+              title: todo.title,
+              completed: !todo.completed,
+            });
+
+            if (!updateResult.success) {
+              setError(updateResult.error.message);
+            }
+
+            return;
+          }
+
+          const confirmed = await window.todoAPI.confirm({
+            title: "Delete Todo",
+            message: "Are you sure you want to delete this todo?",
+            detail: "This action cannot be undone.",
+          });
+
+          if (!confirmed) {
+            return;
+          }
+
+          const deleteResult = await window.todoAPI.delete(todo.id);
+
+          if (!deleteResult.success) {
+            setError(deleteResult.error.message);
+          }
+        };
+
+        void handleAction();
+      },
+    );
 
     return unsubscribe;
   }, []);
@@ -50,6 +123,7 @@ export default function TodosPage() {
 
     if (!title) {
       setError("Todo title is required");
+
       return;
     }
 
@@ -59,6 +133,7 @@ export default function TodosPage() {
 
     if (!result.success) {
       setError(result.error.message);
+
       return;
     }
 
@@ -72,7 +147,7 @@ export default function TodosPage() {
     });
   };
 
-  const handleToggle = async (todo: (typeof todos)[number]) => {
+  const handleToggle = async (todo: Todo) => {
     const result = await window.todoAPI.update({
       id: todo.id,
       title: todo.title,
@@ -100,6 +175,10 @@ export default function TodosPage() {
     if (!result.success) {
       setError(result.error.message);
     }
+  };
+
+  const handleOpenDetail = async (id: string) => {
+    await window.todoAPI.openTodoDetail(id);
   };
 
   if (loading) {
@@ -140,7 +219,13 @@ export default function TodosPage() {
               borderRadius: 8,
             }}
           >
-            <h2 style={{ marginBottom: 12 }}>New Todo</h2>
+            <h2
+              style={{
+                marginBottom: 12,
+              }}
+            >
+              New Todo
+            </h2>
 
             <input
               autoFocus
@@ -179,6 +264,7 @@ export default function TodosPage() {
               >
                 Cancel
               </button>
+
               <button onClick={() => void handleCreate()}>Create</button>
             </div>
           </div>
@@ -199,35 +285,13 @@ export default function TodosPage() {
       {filteredTodos.length === 0 && <div>No todos found.</div>}
 
       {filteredTodos.map((todo) => (
-        <div
+        <TodoItem
           key={todo.id}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            marginBottom: 10,
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={todo.completed}
-            onChange={() => handleToggle(todo)}
-          />
-
-          <span
-            onClick={() => {
-              void window.todoAPI.openTodoDetail(todo.id);
-            }}
-            style={{
-              cursor: "pointer",
-              textDecoration: todo.completed ? "line-through" : "none",
-            }}
-          >
-            {todo.title}
-          </span>
-
-          <button onClick={() => handleDelete(todo.id)}>Delete</button>
-        </div>
+          todo={todo}
+          onToggle={handleToggle}
+          onDelete={handleDelete}
+          onOpenDetail={handleOpenDetail}
+        />
       ))}
     </div>
   );

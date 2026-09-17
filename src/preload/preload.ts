@@ -84,4 +84,31 @@ contextBridge.exposeInMainWorld("todoAPI", {
   importFile: () => {
     return ipcRenderer.invoke("todo:import-file");
   },
+
+  showTodoContextMenu: (input: { todoId: string; completed: boolean }) => {
+    return ipcRenderer.invoke("todo:show-context-menu", input);
+  },
+
+  onTodoContextMenuAction: (
+    callback: (event: {
+      action: "open-detail" | "toggle-completed" | "delete";
+      todoId: string;
+    }) => void,
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      event: {
+        action: "open-detail" | "toggle-completed" | "delete";
+        todoId: string;
+      },
+    ) => {
+      callback(event);
+    };
+
+    ipcRenderer.on("todo:context-menu-action", listener);
+
+    return () => {
+      ipcRenderer.removeListener("todo:context-menu-action", listener);
+    };
+  },
 });
