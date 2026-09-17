@@ -76,4 +76,12 @@ contextBridge.exposeInMainWorld("todoAPI", {
   getAppInfo: () => {
     return ipcRenderer.invoke("native:get-app-info");
   },
+
+  exportFile: () => {
+    return ipcRenderer.invoke("todo:export-file");
+  },
+
+  importFile: () => {
+    return ipcRenderer.invoke("todo:import-file");
+  },
 });

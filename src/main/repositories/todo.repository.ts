@@ -135,6 +135,35 @@ export class TodoRepository {
       throw new Error("Todo not found");
     }
   }
+
+  replaceAll(todos: Todo[]): void {
+    const transaction = this.db.transaction((items: Todo[]) => {
+      this.db.prepare("DELETE FROM todos").run();
+
+      const insert = this.db.prepare(`
+          INSERT INTO todos (
+            id,
+            title,
+            completed,
+            created_at,
+            updated_at
+          )
+          VALUES (?, ?, ?, ?, ?)
+        `);
+
+      for (const todo of items) {
+        insert.run(
+          todo.id,
+          todo.title,
+          todo.completed ? 1 : 0,
+          todo.createdAt,
+          todo.updatedAt,
+        );
+      }
+    });
+
+    transaction(todos);
+  }
 }
 
 function mapTodoRow(row: TodoRow): Todo {

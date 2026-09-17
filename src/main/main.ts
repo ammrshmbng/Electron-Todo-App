@@ -2,13 +2,17 @@ import { app, BrowserWindow } from "electron";
 import path from "node:path";
 
 import { initializeDatabase } from "./database/database";
+
 import { registerTodoIPC } from "./ipc/todo.ipc";
+import { registerTodoFileIPC } from "./ipc/todo-file.ipc";
 import { registerWindowIPC } from "./ipc/window.ipc";
+
 import { createMainWindow } from "./windows/window-manager";
 
 async function loadRenderer(window: BrowserWindow) {
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     await window.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
+
     return;
   }
 
@@ -19,8 +23,11 @@ async function loadRenderer(window: BrowserWindow) {
 
 app.whenReady().then(() => {
   initializeDatabase();
+
   registerTodoIPC();
+  registerTodoFileIPC();
   registerWindowIPC(loadRenderer);
+
   createMainWindow(loadRenderer);
 
   app.on("activate", () => {

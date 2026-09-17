@@ -4,8 +4,8 @@ import type {
 } from "../../shared/contracts/todo-api";
 
 import type { Todo } from "../../shared/types/todo";
-import { getDatabase } from "../database/database";
 
+import { getDatabase } from "../database/database";
 import { TodoRepository } from "../repositories/todo.repository";
 
 let todoService: TodoService | null = null;
@@ -42,5 +42,9 @@ export class TodoService {
 
   delete(id: string): void | boolean {
     this.repository.delete(id);
+  }
+
+  replaceAll(todos: Todo[]): void {
+    this.repository.replaceAll(todos);
   }
 }

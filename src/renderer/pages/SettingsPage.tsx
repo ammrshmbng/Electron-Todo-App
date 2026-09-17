@@ -49,6 +49,40 @@ export default function SettingsPage() {
     }
   };
 
+  const handleExport = async () => {
+    const result = await window.todoAPI.exportFile();
+
+    if (!result.success) {
+      window.alert(result.error.message);
+
+      return;
+    }
+
+    if (!result.data.path) {
+      return;
+    }
+
+    window.alert(
+      `Exported ${result.data.count} todos to:\n${result.data.path}`,
+    );
+  };
+
+  const handleImport = async () => {
+    const result = await window.todoAPI.importFile();
+
+    if (!result.success) {
+      window.alert(result.error.message);
+
+      return;
+    }
+
+    if (result.data.count === 0) {
+      return;
+    }
+
+    window.alert(`Imported ${result.data.count} todos successfully.`);
+  };
+
   return (
     <div>
       <h1>Settings</h1>
@@ -59,7 +93,7 @@ export default function SettingsPage() {
           flexDirection: "column",
           gap: 12,
           marginTop: 20,
-          maxWidth: 700,
+          maxWidth: 500,
         }}
       >
         <button onClick={() => void handleOpenDataFolder()}>
@@ -73,6 +107,12 @@ export default function SettingsPage() {
         <button onClick={() => void handleOpenElectronWebsite()}>
           Open Electron Website
         </button>
+
+        <hr />
+
+        <button onClick={() => void handleExport()}>Export Todos</button>
+
+        <button onClick={() => void handleImport()}>Import Todos</button>
       </div>
 
       <hr
@@ -86,7 +126,15 @@ export default function SettingsPage() {
 
         {loading && <p>Loading...</p>}
 
-        {error && <p style={{ color: "red" }}>{error}</p>}
+        {error && (
+          <p
+            style={{
+              color: "red",
+            }}
+          >
+            {error}
+          </p>
+        )}
 
         {appInfo && (
           <div

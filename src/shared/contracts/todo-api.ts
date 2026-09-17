@@ -68,4 +68,17 @@ export interface TodoAPI {
   openExternal(url: string): Promise<boolean>;
 
   getAppInfo(): Promise<AppInfo>;
+
+  exportFile(): Promise<
+    IPCResult<{
+      path: string;
+      count: number;
+    }>
+  >;
+
+  importFile(): Promise<
+    IPCResult<{
+      count: number;
+    }>
+  >;
 }
