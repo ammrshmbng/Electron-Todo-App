@@ -72,4 +72,8 @@ contextBridge.exposeInMainWorld("todoAPI", {
   openExternal: (url: string) => {
     return ipcRenderer.invoke("native:open-external", url);
   },
+
+  getAppInfo: () => {
+    return ipcRenderer.invoke("native:get-app-info");
+  },
 });

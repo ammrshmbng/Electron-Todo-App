@@ -11,6 +11,25 @@ export interface UpdateTodoInput {
   completed: boolean;
 }
 
+export interface AppInfo {
+  name: string;
+  version: string;
+  platform: NodeJS.Platform;
+  architecture: string;
+  isPackaged: boolean;
+  appPath: string;
+
+  paths: {
+    userData: string;
+    appData: string;
+    documents: string;
+    downloads: string;
+    desktop: string;
+    temp: string;
+    logs: string;
+  };
+}
+
 export interface TodoAPI {
   getAll(): Promise<IPCResult<Todo[]>>;
 
@@ -47,4 +66,6 @@ export interface TodoAPI {
   showDatabase(): Promise<string>;
 
   openExternal(url: string): Promise<boolean>;
+
+  getAppInfo(): Promise<AppInfo>;
 }

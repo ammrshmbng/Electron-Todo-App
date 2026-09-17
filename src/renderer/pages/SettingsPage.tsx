@@ -1,4 +1,30 @@
+import { useEffect, useState } from "react";
+
+import type { AppInfo } from "../../shared/contracts/todo-api";
+
 export default function SettingsPage() {
+  const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
+
+  const [loading, setLoading] = useState(true);
+
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadAppInfo() {
+      try {
+        const result = await window.todoAPI.getAppInfo();
+
+        setAppInfo(result);
+      } catch {
+        setError("Failed to load application information.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    void loadAppInfo();
+  }, []);
+
   const handleOpenDataFolder = async () => {
     const result = await window.todoAPI.openDataFolder();
 
@@ -33,7 +59,7 @@ export default function SettingsPage() {
           flexDirection: "column",
           gap: 12,
           marginTop: 20,
-          maxWidth: 400,
+          maxWidth: 700,
         }}
       >
         <button onClick={() => void handleOpenDataFolder()}>
@@ -48,6 +74,70 @@ export default function SettingsPage() {
           Open Electron Website
         </button>
       </div>
+
+      <hr
+        style={{
+          margin: "32px 0",
+        }}
+      />
+
+      <section>
+        <h2>Application Information</h2>
+
+        {loading && <p>Loading...</p>}
+
+        {error && <p style={{ color: "red" }}>{error}</p>}
+
+        {appInfo && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "180px 1fr",
+              gap: 10,
+              marginTop: 20,
+            }}
+          >
+            <strong>Name</strong>
+            <span>{appInfo.name}</span>
+
+            <strong>Version</strong>
+            <span>{appInfo.version}</span>
+
+            <strong>Platform</strong>
+            <span>{appInfo.platform}</span>
+
+            <strong>Architecture</strong>
+            <span>{appInfo.architecture}</span>
+
+            <strong>Packaged</strong>
+            <span>{appInfo.isPackaged ? "Yes" : "No"}</span>
+
+            <strong>App Path</strong>
+            <span>{appInfo.appPath}</span>
+
+            <strong>User Data</strong>
+            <span>{appInfo.paths.userData}</span>
+
+            <strong>App Data</strong>
+            <span>{appInfo.paths.appData}</span>
+
+            <strong>Documents</strong>
+            <span>{appInfo.paths.documents}</span>
+
+            <strong>Downloads</strong>
+            <span>{appInfo.paths.downloads}</span>
+
+            <strong>Desktop</strong>
+            <span>{appInfo.paths.desktop}</span>
+
+            <strong>Temp</strong>
+            <span>{appInfo.paths.temp}</span>
+
+            <strong>Logs</strong>
+            <span>{appInfo.paths.logs}</span>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

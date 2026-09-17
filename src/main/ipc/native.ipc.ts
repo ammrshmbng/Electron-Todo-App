@@ -132,6 +132,27 @@ export function registerNativeIPC() {
     }
   });
 
+  ipcMain.handle("native:get-app-info", async () => {
+    return {
+      name: app.getName(),
+      version: app.getVersion(),
+      platform: process.platform,
+      architecture: process.arch,
+      isPackaged: app.isPackaged,
+      appPath: app.getAppPath(),
+
+      paths: {
+        userData: app.getPath("userData"),
+        appData: app.getPath("appData"),
+        documents: app.getPath("documents"),
+        downloads: app.getPath("downloads"),
+        desktop: app.getPath("desktop"),
+        temp: app.getPath("temp"),
+        logs: app.getPath("logs"),
+      },
+    };
+  });
+
   const menu = Menu.buildFromTemplate([
     {
       label: "File",
@@ -185,6 +206,7 @@ export function registerNativeIPC() {
 
             if (window) {
               await dialog.showMessageBox(window, aboutOptions);
+
               return;
             }
 
