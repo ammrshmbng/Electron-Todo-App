@@ -1,4 +1,12 @@
-import { BrowserWindow, Menu, Notification, dialog, ipcMain } from "electron";
+import {
+  BrowserWindow,
+  Menu,
+  Notification,
+  dialog,
+  ipcMain,
+  shell,
+  app,
+} from "electron";
 
 const todoFileDialogOptions: Electron.OpenDialogOptions = {
   title: "Open Todo File",
@@ -15,6 +23,10 @@ const todoFileDialogOptions: Electron.OpenDialogOptions = {
   ],
 };
 
+function getWindowFromEvent(event: Electron.IpcMainInvokeEvent) {
+  return BrowserWindow.fromWebContents(event.sender);
+}
+
 export function registerNativeIPC() {
   ipcMain.handle(
     "native:confirm",
@@ -26,7 +38,7 @@ export function registerNativeIPC() {
         detail?: string;
       },
     ) => {
-      const window = BrowserWindow.fromWebContents(event.sender);
+      const window = getWindowFromEvent(event);
 
       const messageBoxOptions = {
         type: "question" as const,
@@ -47,7 +59,7 @@ export function registerNativeIPC() {
   );
 
   ipcMain.handle("native:open-file", async (event) => {
-    const window = BrowserWindow.fromWebContents(event.sender);
+    const window = getWindowFromEvent(event);
 
     const result = window
       ? await dialog.showOpenDialog(window, todoFileDialogOptions)
@@ -81,6 +93,44 @@ export function registerNativeIPC() {
       return true;
     },
   );
+
+  ipcMain.handle("native:open-data-folder", async () => {
+    const dataPath = app.getPath("userData");
+
+    const error = await shell.openPath(dataPath);
+
+    return {
+      success: error.length === 0,
+      path: dataPath,
+      error: error || null,
+    };
+  });
+
+  ipcMain.handle("native:show-database", async () => {
+    const databasePath = app.getPath("userData");
+
+    const databaseFilePath = `${databasePath}/todos.db`;
+
+    shell.showItemInFolder(databaseFilePath);
+
+    return databaseFilePath;
+  });
+
+  ipcMain.handle("native:open-external", async (_event, url: string) => {
+    try {
+      const parsedUrl = new URL(url);
+
+      if (parsedUrl.protocol !== "https:" && parsedUrl.protocol !== "http:") {
+        return false;
+      }
+
+      await shell.openExternal(parsedUrl.toString());
+
+      return true;
+    } catch {
+      return false;
+    }
+  });
 
   const menu = Menu.buildFromTemplate([
     {

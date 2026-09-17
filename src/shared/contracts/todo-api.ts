@@ -37,4 +37,14 @@ export interface TodoAPI {
   openFile(): Promise<string | null>;
 
   notify(options: { title: string; body: string }): Promise<boolean>;
+
+  openDataFolder(): Promise<{
+    success: boolean;
+    path: string;
+    error: string | null;
+  }>;
+
+  showDatabase(): Promise<string>;
+
+  openExternal(url: string): Promise<boolean>;
 }

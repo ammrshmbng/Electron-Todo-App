@@ -60,4 +60,16 @@ contextBridge.exposeInMainWorld("todoAPI", {
   notify: (options: { title: string; body: string }) => {
     return ipcRenderer.invoke("native:notify", options);
   },
+
+  openDataFolder: () => {
+    return ipcRenderer.invoke("native:open-data-folder");
+  },
+
+  showDatabase: () => {
+    return ipcRenderer.invoke("native:show-database");
+  },
+
+  openExternal: (url: string) => {
+    return ipcRenderer.invoke("native:open-external", url);
+  },
 });
