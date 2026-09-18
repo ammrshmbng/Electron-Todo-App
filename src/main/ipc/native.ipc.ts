@@ -9,6 +9,7 @@ import {
 } from "electron";
 
 import { todoContextMenuInputSchema } from "../../shared/validation/todo.schema";
+import type { AppShortcut } from "../../shared/contracts/todo-api";
 
 const todoFileDialogOptions: Electron.OpenDialogOptions = {
   title: "Open Todo File",
@@ -42,6 +43,18 @@ function sendTodoContextMenuAction(
     action,
     todoId,
   });
+}
+
+function sendAppShortcut(window: BrowserWindow | null, shortcut: AppShortcut) {
+  if (!window || window.isDestroyed()) {
+    return;
+  }
+
+  window.webContents.send("app:shortcut", shortcut);
+}
+
+function getBrowserWindow(window: Electron.BaseWindow | null) {
+  return window instanceof BrowserWindow ? window : null;
 }
 
 export function registerNativeIPC() {
@@ -225,7 +238,7 @@ export function registerNativeIPC() {
       submenu: [
         {
           label: "Open Todo File",
-          click: (menuItem, window) => {
+          click: (_menuItem, window) => {
             if (!window) {
               return;
             }
@@ -240,6 +253,35 @@ export function registerNativeIPC() {
 
         {
           role: "quit",
+        },
+      ],
+    },
+
+    {
+      label: "Todo",
+      submenu: [
+        {
+          label: "New Todo",
+          accelerator: "CommandOrControl+N",
+          click: (_menuItem, window) => {
+            const targetWindow = getBrowserWindow(
+              window ?? BrowserWindow.getFocusedWindow(),
+            );
+
+            sendAppShortcut(targetWindow, "new-todo");
+          },
+        },
+
+        {
+          label: "Focus Search",
+          accelerator: "CommandOrControl+F",
+          click: (_menuItem, window) => {
+            const targetWindow = getBrowserWindow(
+              window ?? BrowserWindow.getFocusedWindow(),
+            );
+
+            sendAppShortcut(targetWindow, "focus-search");
+          },
         },
       ],
     },

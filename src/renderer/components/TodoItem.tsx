@@ -4,6 +4,9 @@ import type { Todo } from "../../shared/types/todo";
 
 interface TodoItemProps {
   todo: Todo;
+  selected: boolean;
+
+  onSelect: (id: string) => void;
 
   onToggle: (todo: Todo) => void;
 
@@ -14,12 +17,16 @@ interface TodoItemProps {
 
 export default function TodoItem({
   todo,
+  selected,
+  onSelect,
   onToggle,
   onDelete,
   onOpenDetail,
 }: TodoItemProps) {
   const handleContextMenu = (event: MouseEvent<HTMLDivElement>) => {
     event.preventDefault();
+
+    onSelect(todo.id);
 
     void window.todoAPI.showTodoContextMenu({
       todoId: todo.id,
@@ -29,6 +36,7 @@ export default function TodoItem({
 
   return (
     <div
+      onClick={() => onSelect(todo.id)}
       onContextMenu={handleContextMenu}
       style={{
         display: "flex",
@@ -38,6 +46,7 @@ export default function TodoItem({
         padding: 10,
         border: "1px solid #ddd",
         borderRadius: 6,
+        background: selected ? "#eef4ff" : "transparent",
       }}
     >
       <input

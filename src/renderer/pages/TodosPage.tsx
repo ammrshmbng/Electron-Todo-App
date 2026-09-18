@@ -1,8 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useRecoilState, useRecoilValue } from "recoil";
 
-import { filteredTodosState, todosState } from "../store/todo";
+import {
+  filteredTodosState,
+  searchQueryState,
+  selectedTodoIdState,
+  todosState,
+} from "../store/todo";
 
 import TodoItem from "../components/TodoItem";
 
@@ -12,7 +17,14 @@ import type { TodoContextMenuEvent } from "../../shared/contracts/todo-api";
 export default function TodosPage() {
   const [_todos, setTodos] = useRecoilState(todosState);
 
+  const [selectedTodoId, setSelectedTodoId] =
+    useRecoilState(selectedTodoIdState);
+
+  const [searchQuery, setSearchQuery] = useRecoilState(searchQueryState);
+
   const filteredTodos = useRecoilValue(filteredTodosState);
+
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const [loading, setLoading] = useState(true);
 
@@ -58,6 +70,8 @@ export default function TodosPage() {
     const unsubscribe = window.todoAPI.onTodoContextMenuAction(
       (event: TodoContextMenuEvent) => {
         const handleAction = async () => {
+          setSelectedTodoId(event.todoId);
+
           if (event.action === "open-detail") {
             await window.todoAPI.openTodoDetail(event.todoId);
 
@@ -118,6 +132,66 @@ export default function TodosPage() {
     return unsubscribe;
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = window.todoAPI.onAppShortcut((shortcut) => {
+      if (shortcut === "new-todo") {
+        setError(null);
+        setNewTitle("");
+        setIsCreateOpen(true);
+
+        return;
+      }
+
+      searchInputRef.current?.focus();
+      searchInputRef.current?.select();
+    });
+
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        if (!isCreateOpen) {
+          return;
+        }
+
+        setIsCreateOpen(false);
+        setNewTitle("");
+
+        return;
+      }
+
+      if (event.key !== "Delete") {
+        return;
+      }
+
+      const target = event.target as HTMLElement | null;
+
+      if (
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        target?.isContentEditable
+      ) {
+        return;
+      }
+
+      if (!selectedTodoId) {
+        return;
+      }
+
+      event.preventDefault();
+
+      void handleDelete(selectedTodoId);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isCreateOpen, selectedTodoId]);
+
   const handleCreate = async () => {
     const title = newTitle.trim();
 
@@ -148,6 +222,8 @@ export default function TodosPage() {
   };
 
   const handleToggle = async (todo: Todo) => {
+    setSelectedTodoId(todo.id);
+
     const result = await window.todoAPI.update({
       id: todo.id,
       title: todo.title,
@@ -174,10 +250,18 @@ export default function TodosPage() {
 
     if (!result.success) {
       setError(result.error.message);
+
+      return;
+    }
+
+    if (selectedTodoId === id) {
+      setSelectedTodoId(null);
     }
   };
 
   const handleOpenDetail = async (id: string) => {
+    setSelectedTodoId(id);
+
     await window.todoAPI.openTodoDetail(id);
   };
 
@@ -191,12 +275,33 @@ export default function TodosPage() {
         style={{
           display: "flex",
           justifyContent: "space-between",
+          alignItems: "center",
+          gap: 12,
           marginBottom: 20,
         }}
       >
         <h1>Todos</h1>
 
         <button onClick={() => setIsCreateOpen(true)}>Create Todo</button>
+      </div>
+
+      <div
+        style={{
+          marginBottom: 20,
+        }}
+      >
+        <input
+          ref={searchInputRef}
+          type="search"
+          placeholder="Search todos..."
+          value={searchQuery}
+          onChange={(event) => setSearchQuery(event.target.value)}
+          style={{
+            width: "100%",
+            maxWidth: 500,
+            padding: 8,
+          }}
+        />
       </div>
 
       {isCreateOpen && (
@@ -240,6 +345,7 @@ export default function TodosPage() {
 
                 if (event.key === "Escape") {
                   setIsCreateOpen(false);
+                  setNewTitle("");
                 }
               }}
               style={{
@@ -288,6 +394,8 @@ export default function TodosPage() {
         <TodoItem
           key={todo.id}
           todo={todo}
+          selected={selectedTodoId === todo.id}
+          onSelect={setSelectedTodoId}
           onToggle={handleToggle}
           onDelete={handleDelete}
           onOpenDetail={handleOpenDetail}
