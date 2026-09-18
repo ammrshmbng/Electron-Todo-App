@@ -7,7 +7,10 @@ import { registerTodoIPC } from "./ipc/todo.ipc";
 import { registerTodoFileIPC } from "./ipc/todo-file.ipc";
 import { registerWindowIPC } from "./ipc/window.ipc";
 
-import { createMainWindow } from "./windows/window-manager";
+import { createMainWindow, getMainWindow } from "./windows/window-manager";
+import { createTray, destroyTray } from "./tray";
+
+let isQuitting = false;
 
 async function loadRenderer(window: BrowserWindow) {
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
@@ -29,12 +32,46 @@ app.whenReady().then(() => {
   registerWindowIPC(loadRenderer);
 
   createMainWindow(loadRenderer);
+  createTray();
+
+  const mainWindow = getMainWindow();
+
+  mainWindow?.on("close", (event) => {
+    if (isQuitting) {
+      return;
+    }
+
+    event.preventDefault();
+    mainWindow.hide();
+  });
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createMainWindow(loadRenderer);
+      return;
     }
+
+    const window = getMainWindow();
+
+    if (!window || window.isDestroyed()) {
+      return;
+    }
+
+    if (window.isMinimized()) {
+      window.restore();
+    }
+
+    window.show();
+    window.focus();
   });
+});
+
+app.on("before-quit", () => {
+  isQuitting = true;
+});
+
+app.on("will-quit", () => {
+  destroyTray();
 });
 
 app.on("window-all-closed", () => {
