@@ -7,7 +7,12 @@ import { registerTodoIPC } from "./ipc/todo.ipc";
 import { registerTodoFileIPC } from "./ipc/todo-file.ipc";
 import { registerWindowIPC } from "./ipc/window.ipc";
 
-import { createMainWindow, getMainWindow } from "./windows/window-manager";
+import {
+  createMainWindow,
+  getMainWindow,
+  initializeWindowState,
+  saveWindowStates,
+} from "./windows/window-manager";
 import { createTray, destroyTray } from "./tray";
 
 let isQuitting = false;
@@ -24,7 +29,9 @@ async function loadRenderer(window: BrowserWindow) {
   );
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  await initializeWindowState();
+
   initializeDatabase();
 
   registerTodoIPC();
@@ -66,8 +73,17 @@ app.whenReady().then(() => {
   });
 });
 
-app.on("before-quit", () => {
+app.on("before-quit", (event) => {
+  if (isQuitting) {
+    return;
+  }
+
+  event.preventDefault();
   isQuitting = true;
+
+  void saveWindowStates().finally(() => {
+    app.quit();
+  });
 });
 
 app.on("will-quit", () => {
