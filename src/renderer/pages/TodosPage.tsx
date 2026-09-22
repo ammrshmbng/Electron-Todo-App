@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type { DragEvent } from "react";
 
 import { useRecoilState, useRecoilValue } from "recoil";
 
@@ -33,6 +34,10 @@ export default function TodosPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   const [newTitle, setNewTitle] = useState("");
+
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
+
+  const [isImportingFile, setIsImportingFile] = useState(false);
 
   const loadTodos = async () => {
     setError(null);
@@ -301,6 +306,46 @@ export default function TodosPage() {
     await window.todoAPI.openTodoDetail(id);
   };
 
+  const handleDragOver = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+
+    setIsDraggingFile(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDraggingFile(false);
+  };
+
+  const handleDrop = async (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsDraggingFile(false);
+
+    const file = event.dataTransfer.files[0];
+
+    if (!file) {
+      return;
+    }
+
+    setError(null);
+    setIsImportingFile(true);
+
+    const result = await window.todoAPI.importDroppedFile(file);
+
+    setIsImportingFile(false);
+
+    if (!result.success) {
+      setError(result.error.message);
+
+      return;
+    }
+
+    await window.todoAPI.notify({
+      title: "Todos Imported",
+      body: `${result.data.count} todos imported successfully.`,
+    });
+  };
+
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -338,6 +383,27 @@ export default function TodosPage() {
             padding: 8,
           }}
         />
+      </div>
+
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={(event) => void handleDrop(event)}
+        style={{
+          marginBottom: 20,
+          padding: 24,
+          border: isDraggingFile ? "2px solid #2563eb" : "2px dashed #aaa",
+          borderRadius: 8,
+          background: isDraggingFile ? "#eff6ff" : "transparent",
+          textAlign: "center",
+          transition: "all 0.15s ease",
+        }}
+      >
+        {isImportingFile
+          ? "Importing Todo file..."
+          : isDraggingFile
+            ? "Drop JSON file here"
+            : "Drag & drop a Todo JSON file here to import"}
       </div>
 
       {isCreateOpen && (

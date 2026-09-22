@@ -33,11 +33,7 @@ export interface AppInfo {
 export type AppCommand = "new-todo" | "focus-search";
 
 export type TodoContextMenuAction =
-  | "open-detail"
-  | "toggle-completed"
-  | "copy-title"
-  | "copy-json"
-  | "delete";
+  "open-detail" | "toggle-completed" | "copy-title" | "copy-json" | "delete";
 
 export interface TodoContextMenuEvent {
   action: TodoContextMenuAction;
@@ -95,6 +91,12 @@ export interface TodoAPI {
   >;
 
   importFile(): Promise<
+    IPCResult<{
+      count: number;
+    }>
+  >;
+
+  importDroppedFile(file: unknown): Promise<
     IPCResult<{
       count: number;
     }>

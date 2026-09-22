@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from "electron";
+import { contextBridge, ipcRenderer, webUtils } from "electron";
 
 contextBridge.exposeInMainWorld("todoAPI", {
   getAll: () => {
@@ -85,13 +85,44 @@ contextBridge.exposeInMainWorld("todoAPI", {
     return ipcRenderer.invoke("todo:import-file");
   },
 
+  importDroppedFile: (file: unknown) => {
+    try {
+      const filePath = webUtils.getPathForFile(file as File);
+
+      if (!filePath) {
+        return Promise.resolve({
+          success: false as const,
+          error: {
+            code: "FILE_PATH_UNAVAILABLE",
+            message: "The dropped item is not backed by a local file",
+          },
+        });
+      }
+
+      return ipcRenderer.invoke("todo:import-file-path", filePath);
+    } catch {
+      return Promise.resolve({
+        success: false as const,
+        error: {
+          code: "INVALID_DROPPED_FILE",
+          message: "The dropped item is not a valid local file",
+        },
+      });
+    }
+  },
+
   showTodoContextMenu: (input: { todoId: string; completed: boolean }) => {
     return ipcRenderer.invoke("todo:show-context-menu", input);
   },
 
   onTodoContextMenuAction: (
     callback: (event: {
-      action: "open-detail" | "toggle-completed" | "delete" | "copy-title" | "copy-json";
+      action:
+        | "open-detail"
+        | "toggle-completed"
+        | "delete"
+        | "copy-title"
+        | "copy-json";
       todoId: string;
     }) => void,
   ) => {
@@ -125,9 +156,7 @@ contextBridge.exposeInMainWorld("todoAPI", {
     return ipcRenderer.invoke("native:read-clipboard");
   },
 
-  onAppCommand: (
-    callback: (command: "new-todo" | "focus-search") => void,
-  ) => {
+  onAppCommand: (callback: (command: "new-todo" | "focus-search") => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
       command: "new-todo" | "focus-search",

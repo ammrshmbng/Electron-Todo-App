@@ -20,6 +20,72 @@ function getWindowFromEvent(event: Electron.IpcMainInvokeEvent) {
   return BrowserWindow.fromWebContents(event.sender);
 }
 
+async function importTodoFileFromPath(
+  filePath: string,
+  todoService: ReturnType<typeof getTodoService>,
+): Promise<IPCResult<{ count: number }>> {
+  try {
+    if (path.extname(filePath).toLowerCase() !== ".json") {
+      return {
+        success: false,
+        error: {
+          code: "INVALID_FILE_TYPE",
+          message: "Only JSON files can be imported",
+        },
+      };
+    }
+
+    const content = await fs.readFile(filePath, "utf-8");
+
+    let rawData: unknown;
+
+    try {
+      rawData = JSON.parse(content);
+    } catch {
+      return {
+        success: false,
+        error: {
+          code: "INVALID_JSON",
+          message: "Selected file is not valid JSON",
+        },
+      };
+    }
+
+    const validation = todoFileSchema.safeParse(rawData);
+
+    if (!validation.success) {
+      return {
+        success: false,
+        error: {
+          code: "INVALID_TODO_FILE",
+          message: "Selected file does not contain valid Todo data",
+        },
+      };
+    }
+
+    const todos: Todo[] = validation.data;
+
+    todoService.replaceAll(todos);
+
+    notifyTodoChanged();
+
+    return {
+      success: true,
+      data: {
+        count: todos.length,
+      },
+    };
+  } catch {
+    return {
+      success: false,
+      error: {
+        code: "FILE_READ_ERROR",
+        message: "Failed to import todos",
+      },
+    };
+  }
+}
+
 export function registerTodoFileIPC() {
   const todoService = getTodoService();
 
@@ -97,94 +163,62 @@ export function registerTodoFileIPC() {
         count: number;
       }>
     > => {
-      try {
-        const window = getWindowFromEvent(event);
+      const window = getWindowFromEvent(event);
 
-        const dialogOptions: Electron.OpenDialogOptions = {
-          title: "Import Todos",
-          properties: ["openFile"],
-          filters: [
-            {
-              name: "Todo JSON",
-              extensions: ["json"],
-            },
-          ],
-        };
+      const dialogOptions: Electron.OpenDialogOptions = {
+        title: "Import Todos",
+        properties: ["openFile"],
+        filters: [
+          {
+            name: "Todo JSON",
+            extensions: ["json"],
+          },
+        ],
+      };
 
-        const result = window
-          ? await dialog.showOpenDialog(window, dialogOptions)
-          : await dialog.showOpenDialog(dialogOptions);
+      const result = window
+        ? await dialog.showOpenDialog(window, dialogOptions)
+        : await dialog.showOpenDialog(dialogOptions);
 
-        if (result.canceled) {
-          return {
-            success: true,
-            data: {
-              count: 0,
-            },
-          };
-        }
-
-        const filePath = result.filePaths[0];
-
-        if (!filePath) {
-          return {
-            success: false,
-            error: {
-              code: "FILE_NOT_FOUND",
-              message: "No file was selected",
-            },
-          };
-        }
-
-        const content = await fs.readFile(filePath, "utf-8");
-
-        let rawData: unknown;
-
-        try {
-          rawData = JSON.parse(content);
-        } catch {
-          return {
-            success: false,
-            error: {
-              code: "INVALID_JSON",
-              message: "Selected file is not valid JSON",
-            },
-          };
-        }
-
-        const validation = todoFileSchema.safeParse(rawData);
-
-        if (!validation.success) {
-          return {
-            success: false,
-            error: {
-              code: "INVALID_TODO_FILE",
-              message: "Selected file does not contain valid Todo data",
-            },
-          };
-        }
-
-        const todos: Todo[] = validation.data;
-
-        todoService.replaceAll(todos);
-
-        notifyTodoChanged();
-
+      if (result.canceled) {
         return {
           success: true,
           data: {
-            count: todos.length,
-          },
-        };
-      } catch {
-        return {
-          success: false,
-          error: {
-            code: "FILE_READ_ERROR",
-            message: "Failed to import todos",
+            count: 0,
           },
         };
       }
+
+      const filePath = result.filePaths[0];
+
+      if (!filePath) {
+        return {
+          success: false,
+          error: {
+            code: "FILE_NOT_FOUND",
+            message: "No file was selected",
+          },
+        };
+      }
+
+      return importTodoFileFromPath(filePath, todoService);
+    },
+  );
+
+  ipcMain.handle(
+    "todo:import-file-path",
+    async (_event, filePath: string): Promise<IPCResult<{ count: number }>> => {
+      if (!filePath) {
+        return {
+          success: false,
+          error: {
+            code: "FILE_NOT_FOUND",
+            message: "No file path was provided",
+          },
+        };
+      }
+
+      return importTodoFileFromPath(filePath, todoService);
     },
   );
 }
