@@ -108,6 +108,42 @@ export default function TodosPage() {
             return;
           }
 
+          if (event.action === "copy-title") {
+            const copied = await window.todoAPI.copyText(todo.title);
+
+            if (!copied) {
+              setError("Failed to copy todo title");
+
+              return;
+            }
+
+            await window.todoAPI.notify({
+              title: "Todo Copied",
+              body: "Todo title copied to clipboard.",
+            });
+
+            return;
+          }
+
+          if (event.action === "copy-json") {
+            const copied = await window.todoAPI.copyText(
+              JSON.stringify(todo, null, 2),
+            );
+
+            if (!copied) {
+              setError("Failed to copy todo as JSON");
+
+              return;
+            }
+
+            await window.todoAPI.notify({
+              title: "Todo Copied",
+              body: "Todo JSON copied to clipboard.",
+            });
+
+            return;
+          }
+
           const confirmed = await window.todoAPI.confirm({
             title: "Delete Todo",
             message: "Are you sure you want to delete this todo?",

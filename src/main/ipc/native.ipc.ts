@@ -6,6 +6,7 @@ import {
   ipcMain,
   shell,
   app,
+  clipboard,
 } from "electron";
 
 import { todoContextMenuInputSchema } from "../../shared/validation/todo.schema";
@@ -32,7 +33,12 @@ function getWindowFromEvent(event: Electron.IpcMainInvokeEvent) {
 
 function sendTodoContextMenuAction(
   sender: Electron.WebContents,
-  action: "open-detail" | "toggle-completed" | "delete",
+  action:
+    | "open-detail"
+    | "toggle-completed"
+    | "copy-title"
+    | "copy-json"
+    | "delete",
   todoId: string,
 ) {
   if (sender.isDestroyed()) {
@@ -175,6 +181,16 @@ export function registerNativeIPC() {
     };
   });
 
+  ipcMain.handle("native:copy-text", async (_event, text: string) => {
+    clipboard.writeText(text);
+
+    return true;
+  });
+
+  ipcMain.handle("native:read-clipboard", async () => {
+    return clipboard.readText();
+  });
+
   ipcMain.handle("todo:show-context-menu", async (event, rawInput: unknown) => {
     const validation = todoContextMenuInputSchema.safeParse(rawInput);
 
@@ -204,6 +220,24 @@ export function registerNativeIPC() {
         label: completed ? "Mark as Active" : "Mark as Completed",
         click: () => {
           sendTodoContextMenuAction(sender, "toggle-completed", todoId);
+        },
+      },
+
+      {
+        type: "separator",
+      },
+
+      {
+        label: "Copy Title",
+        click: () => {
+          sendTodoContextMenuAction(sender, "copy-title", todoId);
+        },
+      },
+
+      {
+        label: "Copy as JSON",
+        click: () => {
+          sendTodoContextMenuAction(sender, "copy-json", todoId);
         },
       },
 

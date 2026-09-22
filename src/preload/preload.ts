@@ -91,14 +91,19 @@ contextBridge.exposeInMainWorld("todoAPI", {
 
   onTodoContextMenuAction: (
     callback: (event: {
-      action: "open-detail" | "toggle-completed" | "delete";
+      action: "open-detail" | "toggle-completed" | "delete" | "copy-title" | "copy-json";
       todoId: string;
     }) => void,
   ) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
       event: {
-        action: "open-detail" | "toggle-completed" | "delete";
+        action:
+          | "open-detail"
+          | "toggle-completed"
+          | "copy-title"
+          | "copy-json"
+          | "delete";
         todoId: string;
       },
     ) => {
@@ -110,6 +115,14 @@ contextBridge.exposeInMainWorld("todoAPI", {
     return () => {
       ipcRenderer.removeListener("todo:context-menu-action", listener);
     };
+  },
+
+  copyText: (text: string) => {
+    return ipcRenderer.invoke("native:copy-text", text);
+  },
+
+  readClipboardText: () => {
+    return ipcRenderer.invoke("native:read-clipboard");
   },
 
   onAppCommand: (

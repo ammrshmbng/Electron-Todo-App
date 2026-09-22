@@ -33,7 +33,11 @@ export interface AppInfo {
 export type AppCommand = "new-todo" | "focus-search";
 
 export type TodoContextMenuAction =
-  "open-detail" | "toggle-completed" | "delete";
+  | "open-detail"
+  | "toggle-completed"
+  | "copy-title"
+  | "copy-json"
+  | "delete";
 
 export interface TodoContextMenuEvent {
   action: TodoContextMenuAction;
@@ -78,6 +82,10 @@ export interface TodoAPI {
   openExternal(url: string): Promise<boolean>;
 
   getAppInfo(): Promise<AppInfo>;
+
+  copyText(text: string): Promise<boolean>;
+
+  readClipboardText(): Promise<string>;
 
   exportFile(): Promise<
     IPCResult<{
