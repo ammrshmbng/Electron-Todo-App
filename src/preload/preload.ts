@@ -112,20 +112,20 @@ contextBridge.exposeInMainWorld("todoAPI", {
     };
   },
 
-  onAppShortcut: (
-    callback: (shortcut: "new-todo" | "focus-search") => void,
+  onAppCommand: (
+    callback: (command: "new-todo" | "focus-search") => void,
   ) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
-      shortcut: "new-todo" | "focus-search",
+      command: "new-todo" | "focus-search",
     ) => {
-      callback(shortcut);
+      callback(command);
     };
 
-    ipcRenderer.on("app:shortcut", listener);
+    ipcRenderer.on("app:command", listener);
 
     return () => {
-      ipcRenderer.removeListener("app:shortcut", listener);
+      ipcRenderer.removeListener("app:command", listener);
     };
   },
 });

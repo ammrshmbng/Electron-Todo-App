@@ -133,8 +133,8 @@ export default function TodosPage() {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = window.todoAPI.onAppShortcut((shortcut) => {
-      if (shortcut === "new-todo") {
+    const unsubscribe = window.todoAPI.onAppCommand((command) => {
+      if (command === "new-todo") {
         setError(null);
         setNewTitle("");
         setIsCreateOpen(true);

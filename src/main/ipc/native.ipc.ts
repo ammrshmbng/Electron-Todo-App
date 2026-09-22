@@ -9,7 +9,7 @@ import {
 } from "electron";
 
 import { todoContextMenuInputSchema } from "../../shared/validation/todo.schema";
-import type { AppShortcut } from "../../shared/contracts/todo-api";
+import { dispatchAppCommand } from "../commands/app-command";
 
 const todoFileDialogOptions: Electron.OpenDialogOptions = {
   title: "Open Todo File",
@@ -43,14 +43,6 @@ function sendTodoContextMenuAction(
     action,
     todoId,
   });
-}
-
-function sendAppShortcut(window: BrowserWindow | null, shortcut: AppShortcut) {
-  if (!window || window.isDestroyed()) {
-    return;
-  }
-
-  window.webContents.send("app:shortcut", shortcut);
 }
 
 function getBrowserWindow(window: Electron.BaseWindow | null) {
@@ -268,7 +260,7 @@ export function registerNativeIPC() {
               window ?? BrowserWindow.getFocusedWindow(),
             );
 
-            sendAppShortcut(targetWindow, "new-todo");
+            dispatchAppCommand(targetWindow, "new-todo");
           },
         },
 
@@ -280,7 +272,7 @@ export function registerNativeIPC() {
               window ?? BrowserWindow.getFocusedWindow(),
             );
 
-            sendAppShortcut(targetWindow, "focus-search");
+            dispatchAppCommand(targetWindow, "focus-search");
           },
         },
       ],

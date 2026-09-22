@@ -30,7 +30,7 @@ export interface AppInfo {
   };
 }
 
-export type AppShortcut = "new-todo" | "focus-search";
+export type AppCommand = "new-todo" | "focus-search";
 
 export type TodoContextMenuAction =
   "open-detail" | "toggle-completed" | "delete";
@@ -101,5 +101,5 @@ export interface TodoAPI {
     callback: (event: TodoContextMenuEvent) => void,
   ): () => void;
 
-  onAppShortcut(callback: (shortcut: AppShortcut) => void): () => void;
+  onAppCommand(callback: (command: AppCommand) => void): () => void;
 }

@@ -1,6 +1,7 @@
 import { app, BrowserWindow, Menu, nativeImage, Tray } from "electron";
 
 import { getMainWindow } from "./windows/window-manager";
+import { dispatchAppCommand } from "./commands/app-command";
 
 let tray: Tray | null = null;
 
@@ -51,7 +52,7 @@ function sendNewTodoCommand() {
 
   showMainWindow();
 
-  window.webContents.send("app:shortcut", "new-todo");
+  dispatchAppCommand(window, "new-todo");
 }
 
 export function createTray() {
