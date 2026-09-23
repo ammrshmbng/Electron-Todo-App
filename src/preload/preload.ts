@@ -100,7 +100,10 @@ contextBridge.exposeInMainWorld("todoAPI", {
         });
       }
 
-      return ipcRenderer.invoke(IPC_CHANNELS.TODO.IMPORT_FILE_PATH, filePath);
+      return ipcRenderer.invoke(
+        IPC_CHANNELS.TODO.IMPORT_FILE_PATH,
+        filePath,
+      );
     } catch {
       return Promise.resolve({
         success: false as const,
@@ -145,7 +148,10 @@ contextBridge.exposeInMainWorld("todoAPI", {
     ipcRenderer.on(IPC_CHANNELS.TODO.EVENTS.CONTEXT_MENU_ACTION, listener);
 
     return () => {
-      ipcRenderer.removeListener(IPC_CHANNELS.TODO.EVENTS.CONTEXT_MENU_ACTION, listener);
+      ipcRenderer.removeListener(
+        IPC_CHANNELS.TODO.EVENTS.CONTEXT_MENU_ACTION,
+        listener,
+      );
     };
   },
 
@@ -185,6 +191,122 @@ contextBridge.exposeInMainWorld("todoAPI", {
 
     return () => {
       ipcRenderer.removeListener(IPC_CHANNELS.APP.EVENTS.COMMAND, listener);
+    };
+  },
+
+  startTodoScan: () => {
+    return ipcRenderer.invoke(IPC_CHANNELS.BACKGROUND.START_TODO_SCAN);
+  },
+
+  cancelBackgroundTask: (taskId: string) => {
+    return ipcRenderer.invoke(IPC_CHANNELS.BACKGROUND.CANCEL, taskId);
+  },
+
+  onBackgroundProgress: (
+    callback: (event: {
+      taskId: string;
+      processed: number;
+      total: number;
+      percent: number;
+    }) => void,
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      event: {
+        taskId: string;
+        processed: number;
+        total: number;
+        percent: number;
+      },
+    ) => {
+      callback(event);
+    };
+
+    ipcRenderer.on(IPC_CHANNELS.BACKGROUND.EVENTS.PROGRESS, listener);
+
+    return () => {
+      ipcRenderer.removeListener(
+        IPC_CHANNELS.BACKGROUND.EVENTS.PROGRESS,
+        listener,
+      );
+    };
+  },
+
+  onBackgroundCompleted: (
+    callback: (event: {
+      taskId: string;
+      report: {
+        total: number;
+        completed: number;
+        active: number;
+        longestTitleLength: number;
+        durationMs: number;
+      };
+    }) => void,
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      event: {
+        taskId: string;
+        report: {
+          total: number;
+          completed: number;
+          active: number;
+          longestTitleLength: number;
+          durationMs: number;
+        };
+      },
+    ) => {
+      callback(event);
+    };
+
+    ipcRenderer.on(IPC_CHANNELS.BACKGROUND.EVENTS.COMPLETED, listener);
+
+    return () => {
+      ipcRenderer.removeListener(
+        IPC_CHANNELS.BACKGROUND.EVENTS.COMPLETED,
+        listener,
+      );
+    };
+  },
+
+  onBackgroundCancelled: (
+    callback: (event: { taskId: string }) => void,
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      event: { taskId: string },
+    ) => {
+      callback(event);
+    };
+
+    ipcRenderer.on(IPC_CHANNELS.BACKGROUND.EVENTS.CANCELLED, listener);
+
+    return () => {
+      ipcRenderer.removeListener(
+        IPC_CHANNELS.BACKGROUND.EVENTS.CANCELLED,
+        listener,
+      );
+    };
+  },
+
+  onBackgroundError: (
+    callback: (event: { taskId: string; message: string }) => void,
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      event: { taskId: string; message: string },
+    ) => {
+      callback(event);
+    };
+
+    ipcRenderer.on(IPC_CHANNELS.BACKGROUND.EVENTS.ERROR, listener);
+
+    return () => {
+      ipcRenderer.removeListener(
+        IPC_CHANNELS.BACKGROUND.EVENTS.ERROR,
+        listener,
+      );
     };
   },
 });

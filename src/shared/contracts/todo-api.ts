@@ -33,7 +33,11 @@ export interface AppInfo {
 export type AppCommand = "new-todo" | "focus-search";
 
 export type TodoContextMenuAction =
-  "open-detail" | "toggle-completed" | "copy-title" | "copy-json" | "delete";
+  | "open-detail"
+  | "toggle-completed"
+  | "copy-title"
+  | "copy-json"
+  | "delete";
 
 export interface TodoContextMenuEvent {
   action: TodoContextMenuAction;
@@ -47,6 +51,35 @@ export interface WebContentsInfo {
   isLoading: boolean;
   isDevToolsOpened: boolean;
   windowId: number | null;
+}
+
+export interface TodoScanReport {
+  total: number;
+  completed: number;
+  active: number;
+  longestTitleLength: number;
+  durationMs: number;
+}
+
+export interface BackgroundTaskProgress {
+  taskId: string;
+  processed: number;
+  total: number;
+  percent: number;
+}
+
+export interface BackgroundTaskCompleted {
+  taskId: string;
+  report: TodoScanReport;
+}
+
+export interface BackgroundTaskCancelled {
+  taskId: string;
+}
+
+export interface BackgroundTaskError {
+  taskId: string;
+  message: string;
 }
 
 export interface TodoAPI {
@@ -100,24 +133,11 @@ export interface TodoAPI {
 
   readClipboardText(): Promise<string>;
 
-  exportFile(): Promise<
-    IPCResult<{
-      path: string;
-      count: number;
-    }>
-  >;
+  exportFile(): Promise<IPCResult<{ path: string; count: number }>>;
 
-  importFile(): Promise<
-    IPCResult<{
-      count: number;
-    }>
-  >;
+  importFile(): Promise<IPCResult<{ count: number }>>;
 
-  importDroppedFile(file: unknown): Promise<
-    IPCResult<{
-      count: number;
-    }>
-  >;
+  importDroppedFile(file: unknown): Promise<IPCResult<{ count: number }>>;
 
   showTodoContextMenu(input: {
     todoId: string;
@@ -129,4 +149,24 @@ export interface TodoAPI {
   ): () => void;
 
   onAppCommand(callback: (command: AppCommand) => void): () => void;
+
+  startTodoScan(): Promise<IPCResult<{ taskId: string }>>;
+
+  cancelBackgroundTask(taskId: string): Promise<IPCResult<null>>;
+
+  onBackgroundProgress(
+    callback: (event: BackgroundTaskProgress) => void,
+  ): () => void;
+
+  onBackgroundCompleted(
+    callback: (event: BackgroundTaskCompleted) => void,
+  ): () => void;
+
+  onBackgroundCancelled(
+    callback: (event: BackgroundTaskCancelled) => void,
+  ): () => void;
+
+  onBackgroundError(
+    callback: (event: BackgroundTaskError) => void,
+  ): () => void;
 }

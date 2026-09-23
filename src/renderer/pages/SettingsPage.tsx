@@ -1,24 +1,32 @@
 import { useEffect, useState } from "react";
 
-import type { AppInfo, WebContentsInfo } from "../../shared/contracts/todo-api";
+import type {
+  AppInfo,
+  BackgroundTaskProgress,
+  TodoScanReport,
+  WebContentsInfo,
+} from "../../shared/contracts/todo-api";
 
 export default function SettingsPage() {
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
-
   const [loading, setLoading] = useState(true);
-
   const [error, setError] = useState<string | null>(null);
 
   const [webContentsInfo, setWebContentsInfo] =
     useState<WebContentsInfo | null>(null);
-
   const [webContentsError, setWebContentsError] = useState<string | null>(null);
+
+  const [backgroundTaskId, setBackgroundTaskId] = useState<string | null>(null);
+  const [backgroundProgress, setBackgroundProgress] =
+    useState<BackgroundTaskProgress | null>(null);
+  const [backgroundReport, setBackgroundReport] =
+    useState<TodoScanReport | null>(null);
+  const [backgroundError, setBackgroundError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadAppInfo() {
       try {
         const result = await window.todoAPI.getAppInfo();
-
         setAppInfo(result);
       } catch {
         setError("Failed to load application information.");
@@ -34,10 +42,46 @@ export default function SettingsPage() {
     void loadWebContentsInfo();
   }, []);
 
+  useEffect(() => {
+    const unsubscribeProgress = window.todoAPI.onBackgroundProgress((event) => {
+      setBackgroundProgress(event);
+      setBackgroundError(null);
+    });
+
+    const unsubscribeCompleted = window.todoAPI.onBackgroundCompleted((event) => {
+      setBackgroundTaskId(null);
+      setBackgroundProgress(null);
+      setBackgroundReport(event.report);
+      setBackgroundError(null);
+    });
+
+    const unsubscribeCancelled = window.todoAPI.onBackgroundCancelled((event) => {
+      setBackgroundTaskId(null);
+      setBackgroundProgress(null);
+      setBackgroundError(null);
+
+      if (backgroundTaskId === event.taskId) {
+        setBackgroundReport(null);
+      }
+    });
+
+    const unsubscribeError = window.todoAPI.onBackgroundError((event) => {
+      setBackgroundTaskId(null);
+      setBackgroundProgress(null);
+      setBackgroundError(event.message);
+    });
+
+    return () => {
+      unsubscribeProgress();
+      unsubscribeCompleted();
+      unsubscribeCancelled();
+      unsubscribeError();
+    };
+  }, [backgroundTaskId]);
+
   const loadWebContentsInfo = async () => {
     try {
       const result = await window.todoAPI.getWebContentsInfo();
-
       setWebContentsInfo(result);
       setWebContentsError(null);
     } catch {
@@ -83,7 +127,6 @@ export default function SettingsPage() {
 
     if (!result.success) {
       window.alert(result.error.message);
-
       return;
     }
 
@@ -101,7 +144,6 @@ export default function SettingsPage() {
 
     if (!result.success) {
       window.alert(result.error.message);
-
       return;
     }
 
@@ -110,6 +152,35 @@ export default function SettingsPage() {
     }
 
     window.alert(`Imported ${result.data.count} todos successfully.`);
+  };
+
+  const handleStartTodoScan = async () => {
+    setBackgroundError(null);
+    setBackgroundReport(null);
+    setBackgroundProgress(null);
+
+    const result = await window.todoAPI.startTodoScan();
+
+    if (!result.success) {
+      setBackgroundError(result.error.message);
+      return;
+    }
+
+    setBackgroundTaskId(result.data.taskId);
+  };
+
+  const handleCancelTodoScan = async () => {
+    if (!backgroundTaskId) {
+      return;
+    }
+
+    const result = await window.todoAPI.cancelBackgroundTask(
+      backgroundTaskId,
+    );
+
+    if (!result.success) {
+      setBackgroundError(result.error.message);
+    }
   };
 
   return (
@@ -143,6 +214,102 @@ export default function SettingsPage() {
 
         <button onClick={() => void handleImport()}>Import Todos</button>
       </div>
+
+      <hr
+        style={{
+          margin: "32px 0",
+        }}
+      />
+
+      <section>
+        <h2>Background Tasks</h2>
+
+        <p>
+          Run a cooperative background scan of the Todo database without
+          blocking the Renderer.
+        </p>
+
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            marginTop: 16,
+          }}
+        >
+          <button
+            disabled={backgroundTaskId !== null}
+            onClick={() => void handleStartTodoScan()}
+          >
+            Run Todo Scan
+          </button>
+
+          <button
+            disabled={backgroundTaskId === null}
+            onClick={() => void handleCancelTodoScan()}
+          >
+            Cancel
+          </button>
+        </div>
+
+        {backgroundProgress && (
+          <div style={{ marginTop: 20 }}>
+            <p>
+              Progress: {backgroundProgress.percent}% — {backgroundProgress.processed} / {backgroundProgress.total}
+            </p>
+
+            <div
+              style={{
+                width: "100%",
+                height: 12,
+                background: "#ddd",
+                borderRadius: 6,
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  width: `${backgroundProgress.percent}%`,
+                  height: "100%",
+                  background: "#2563eb",
+                  transition: "width 0.1s linear",
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {backgroundError && (
+          <p style={{ color: "red", marginTop: 16 }}>
+            {backgroundError}
+          </p>
+        )}
+
+        {backgroundReport && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "180px 1fr",
+              gap: 10,
+              marginTop: 20,
+            }}
+          >
+            <strong>Total</strong>
+            <span>{backgroundReport.total}</span>
+
+            <strong>Completed</strong>
+            <span>{backgroundReport.completed}</span>
+
+            <strong>Active</strong>
+            <span>{backgroundReport.active}</span>
+
+            <strong>Longest Title</strong>
+            <span>{backgroundReport.longestTitleLength} characters</span>
+
+            <strong>Duration</strong>
+            <span>{backgroundReport.durationMs} ms</span>
+          </div>
+        )}
+      </section>
 
       <hr
         style={{
@@ -251,7 +418,9 @@ export default function SettingsPage() {
           </button>
         </div>
 
-        {webContentsError && <p style={{ color: "red" }}>{webContentsError}</p>}
+        {webContentsError && (
+          <p style={{ color: "red" }}>{webContentsError}</p>
+        )}
 
         {webContentsInfo && (
           <div
@@ -271,7 +440,9 @@ export default function SettingsPage() {
             <span>{webContentsInfo.isLoading ? "Yes" : "No"}</span>
 
             <strong>DevTools</strong>
-            <span>{webContentsInfo.isDevToolsOpened ? "Open" : "Closed"}</span>
+            <span>
+              {webContentsInfo.isDevToolsOpened ? "Open" : "Closed"}
+            </span>
 
             <strong>URL</strong>
             <span>{webContentsInfo.url}</span>

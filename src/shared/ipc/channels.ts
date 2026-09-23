@@ -35,6 +35,16 @@ export const IPC_CHANNELS = {
     TOGGLE_DEVTOOLS: "webcontents:toggle-devtools",
     GET_INFO: "webcontents:get-info",
   },
+  BACKGROUND: {
+    START_TODO_SCAN: "background:start-todo-scan",
+    CANCEL: "background:cancel",
+    EVENTS: {
+      PROGRESS: "background:progress",
+      COMPLETED: "background:completed",
+      CANCELLED: "background:cancelled",
+      ERROR: "background:error",
+    },
+  },
   APP: {
     EVENTS: {
       COMMAND: "app:command",
@@ -49,4 +59,8 @@ export type IPCInvokeChannel =
     >]
   | (typeof IPC_CHANNELS.NATIVE)[keyof typeof IPC_CHANNELS.NATIVE]
   | (typeof IPC_CHANNELS.WINDOW)[keyof typeof IPC_CHANNELS.WINDOW]
-  | (typeof IPC_CHANNELS.WEBCONTENTS)[keyof typeof IPC_CHANNELS.WEBCONTENTS];
+  | (typeof IPC_CHANNELS.WEBCONTENTS)[keyof typeof IPC_CHANNELS.WEBCONTENTS]
+  | (typeof IPC_CHANNELS.BACKGROUND)[Exclude<
+      keyof typeof IPC_CHANNELS.BACKGROUND,
+      "EVENTS"
+    >];
