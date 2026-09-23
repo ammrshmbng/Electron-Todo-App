@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain, shell } from "electron";
+import { assertTrustedIPCEvent, isTrustedAppUrl } from "./security";
 
 function isAllowedExternalUrl(value: string) {
   try {
@@ -11,23 +12,7 @@ function isAllowedExternalUrl(value: string) {
 }
 
 function isInternalAppUrl(value: string) {
-  try {
-    const url = new URL(value);
-
-    if (url.protocol === "file:") {
-      return true;
-    }
-
-    if (!MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-      return false;
-    }
-
-    const devServerOrigin = new URL(MAIN_WINDOW_VITE_DEV_SERVER_URL).origin;
-
-    return url.origin === devServerOrigin;
-  } catch {
-    return false;
-  }
+  return isTrustedAppUrl(value);
 }
 
 function openSafeExternalUrl(value: string) {
@@ -41,6 +26,10 @@ function openSafeExternalUrl(value: string) {
 }
 
 function configureWebContentsSecurity(contents: Electron.WebContents) {
+  contents.on("will-attach-webview", (event) => {
+    event.preventDefault();
+  });
+
   contents.on("will-navigate", (event, navigationUrl) => {
     if (isInternalAppUrl(navigationUrl)) {
       return;
@@ -51,11 +40,22 @@ function configureWebContentsSecurity(contents: Electron.WebContents) {
   });
 
   contents.setWindowOpenHandler(({ url }) => {
-    openSafeExternalUrl(url);
+    if (!isInternalAppUrl(url)) {
+      openSafeExternalUrl(url);
+    }
 
     return {
       action: "deny",
     };
+  });
+
+  contents.on("will-redirect", (event, navigationUrl) => {
+    if (isInternalAppUrl(navigationUrl)) {
+      return;
+    }
+
+    event.preventDefault();
+    openSafeExternalUrl(navigationUrl);
   });
 
   contents.on("did-start-loading", () => {
@@ -103,14 +103,18 @@ export function registerWebContents() {
   appOnWebContentsCreated();
 
   ipcMain.handle("webcontents:reload", (event) => {
+    assertTrustedIPCEvent(event);
     event.sender.reload();
   });
 
   ipcMain.handle("webcontents:open-devtools", (event) => {
+    assertTrustedIPCEvent(event);
     event.sender.openDevTools();
   });
 
   ipcMain.handle("webcontents:toggle-devtools", (event) => {
+    assertTrustedIPCEvent(event);
+
     if (event.sender.isDevToolsOpened()) {
       event.sender.closeDevTools();
 
@@ -121,6 +125,8 @@ export function registerWebContents() {
   });
 
   ipcMain.handle("webcontents:get-info", (event) => {
+    assertTrustedIPCEvent(event);
+
     const browserWindow = BrowserWindow.fromWebContents(event.sender);
 
     return {
@@ -136,6 +142,12 @@ export function registerWebContents() {
 
 function appOnWebContentsCreated() {
   app.on("web-contents-created", (_event, contents) => {
+    const browserWindow = BrowserWindow.fromWebContents(contents);
+
+    if (!browserWindow) {
+      return;
+    }
+
     configureWebContentsSecurity(contents);
   });
 }

@@ -9,6 +9,7 @@ import {
 } from "../../shared/validation/todo.schema";
 
 import { registerNativeIPC } from "./native.ipc";
+import { assertTrustedIPCEvent } from "../security";
 
 function notifyTodoChanged() {
   for (const window of BrowserWindow.getAllWindows()) {
@@ -21,7 +22,9 @@ export function registerTodoIPC() {
 
   const todoService = getTodoService();
 
-  ipcMain.handle("todo:get-all", async () => {
+  ipcMain.handle("todo:get-all", async (event) => {
+    assertTrustedIPCEvent(event);
+
     try {
       const todos = todoService.getAll();
 
@@ -40,7 +43,9 @@ export function registerTodoIPC() {
     }
   });
 
-  ipcMain.handle("todo:get-by-id", async (_event, rawId: unknown) => {
+  ipcMain.handle("todo:get-by-id", async (event, rawId: unknown) => {
+    assertTrustedIPCEvent(event);
+
     const validation = todoIdSchema.safeParse(rawId);
 
     if (!validation.success) {
@@ -71,7 +76,9 @@ export function registerTodoIPC() {
     }
   });
 
-  ipcMain.handle("todo:create", async (_event, rawInput: unknown) => {
+  ipcMain.handle("todo:create", async (event, rawInput: unknown) => {
+    assertTrustedIPCEvent(event);
+
     const validation = createTodoInputSchema.safeParse(rawInput);
 
     if (!validation.success) {
@@ -104,7 +111,9 @@ export function registerTodoIPC() {
     }
   });
 
-  ipcMain.handle("todo:update", async (_event, rawInput: unknown) => {
+  ipcMain.handle("todo:update", async (event, rawInput: unknown) => {
+    assertTrustedIPCEvent(event);
+
     const validation = updateTodoInputSchema.safeParse(rawInput);
 
     if (!validation.success) {
@@ -147,7 +156,9 @@ export function registerTodoIPC() {
     }
   });
 
-  ipcMain.handle("todo:delete", async (_event, rawId: unknown) => {
+  ipcMain.handle("todo:delete", async (event, rawId: unknown) => {
+    assertTrustedIPCEvent(event);
+
     const validation = todoIdSchema.safeParse(rawId);
 
     if (!validation.success) {
@@ -162,8 +173,6 @@ export function registerTodoIPC() {
 
     try {
       todoService.delete(validation.data);
-
-      
 
       notifyTodoChanged();
 

@@ -15,6 +15,7 @@ import {
 } from "./windows/window-manager";
 import { createTray, destroyTray } from "./tray";
 import { registerWebContents } from "./webcontents";
+import { configureSessionSecurity } from "./security";
 
 let isQuitting = false;
 
@@ -33,6 +34,8 @@ async function loadRenderer(window: BrowserWindow) {
 }
 
 app.whenReady().then(async () => {
+  configureSessionSecurity();
+
   await initializeWindowState();
 
   initializeDatabase();

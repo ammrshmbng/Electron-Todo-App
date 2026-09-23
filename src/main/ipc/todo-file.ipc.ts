@@ -9,6 +9,7 @@ import { todoFileSchema } from "../../shared/validation/todo.schema";
 
 import type { Todo } from "../../shared/types/todo";
 import type { IPCResult } from "../../shared/contracts/result";
+import { assertTrustedIPCEvent } from "../security";
 
 function notifyTodoChanged() {
   for (const window of BrowserWindow.getAllWindows()) {
@@ -99,6 +100,7 @@ export function registerTodoFileIPC() {
         count: number;
       }>
     > => {
+      assertTrustedIPCEvent(event);
       try {
         const todos = todoService.getAll();
 
@@ -207,7 +209,8 @@ export function registerTodoFileIPC() {
 
   ipcMain.handle(
     "todo:import-file-path",
-    async (_event, filePath: string): Promise<IPCResult<{ count: number }>> => {
+    async (event, filePath: string): Promise<IPCResult<{ count: number }>> => {
+      assertTrustedIPCEvent(event);
       if (!filePath) {
         return {
           success: false,
