@@ -1,6 +1,7 @@
 import { BrowserWindow } from "electron";
 
 import type { AppCommand } from "../../shared/contracts/todo-api";
+import { IPC_CHANNELS } from "../../shared/ipc/channels";
 
 export function dispatchAppCommand(
   window: BrowserWindow | null,
@@ -10,5 +11,5 @@ export function dispatchAppCommand(
     return;
   }
 
-  window.webContents.send("app:command", command);
+  window.webContents.send(IPC_CHANNELS.APP.EVENTS.COMMAND, command);
 }

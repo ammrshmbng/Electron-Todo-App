@@ -1,5 +1,7 @@
-import { app, BrowserWindow, ipcMain, shell } from "electron";
-import { assertTrustedIPCEvent, isTrustedAppUrl } from "./security";
+import { app, BrowserWindow, shell } from "electron";
+import { isTrustedAppUrl } from "./security";
+import { IPC_CHANNELS } from "../shared/ipc/channels";
+import { registerSecureIpcHandler } from "./ipc/register";
 
 function isAllowedExternalUrl(value: string) {
   try {
@@ -102,18 +104,15 @@ function configureWebContentsSecurity(contents: Electron.WebContents) {
 export function registerWebContents() {
   appOnWebContentsCreated();
 
-  ipcMain.handle("webcontents:reload", (event) => {
-    assertTrustedIPCEvent(event);
+  registerSecureIpcHandler(IPC_CHANNELS.WEBCONTENTS.RELOAD, (event) => {
     event.sender.reload();
   });
 
-  ipcMain.handle("webcontents:open-devtools", (event) => {
-    assertTrustedIPCEvent(event);
+  registerSecureIpcHandler(IPC_CHANNELS.WEBCONTENTS.OPEN_DEVTOOLS, (event) => {
     event.sender.openDevTools();
   });
 
-  ipcMain.handle("webcontents:toggle-devtools", (event) => {
-    assertTrustedIPCEvent(event);
+  registerSecureIpcHandler(IPC_CHANNELS.WEBCONTENTS.TOGGLE_DEVTOOLS, (event) => {
 
     if (event.sender.isDevToolsOpened()) {
       event.sender.closeDevTools();
@@ -124,8 +123,7 @@ export function registerWebContents() {
     event.sender.openDevTools();
   });
 
-  ipcMain.handle("webcontents:get-info", (event) => {
-    assertTrustedIPCEvent(event);
+  registerSecureIpcHandler(IPC_CHANNELS.WEBCONTENTS.GET_INFO, (event) => {
 
     const browserWindow = BrowserWindow.fromWebContents(event.sender);
 

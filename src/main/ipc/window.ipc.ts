@@ -1,17 +1,16 @@
-import { ipcMain } from "electron";
+
 import { createDetailWindow } from "../windows/window-manager";
-import { assertTrustedIPCEvent } from "../security";
+import { IPC_CHANNELS } from "../../shared/ipc/channels";
+import { registerSecureIpcHandler } from "./register";
 
 export function registerWindowIPC(
   loadRenderer: (window: Electron.BrowserWindow) => Promise<void>,
 ) {
-  ipcMain.handle("window:open-todo-detail", async (event, todoId: string) => {
-    assertTrustedIPCEvent(event);
-
+  registerSecureIpcHandler(IPC_CHANNELS.WINDOW.OPEN_TODO_DETAIL, async (event, todoId: string) => {
     const window = createDetailWindow(loadRenderer);
 
     window.webContents.once("did-finish-load", () => {
-      window.webContents.send("todo:detail-id", todoId);
+      window.webContents.send(IPC_CHANNELS.TODO.EVENTS.DETAIL_ID, todoId);
     });
 
     return;

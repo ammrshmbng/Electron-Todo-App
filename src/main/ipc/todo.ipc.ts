@@ -1,6 +1,9 @@
-import { BrowserWindow, ipcMain } from "electron";
+import { BrowserWindow } from "electron";
 
 import { getTodoService } from "../services/todo.service";
+import { IPC_CHANNELS } from "../../shared/ipc/channels";
+import { registerSecureIpcHandler } from "./register";
+import { ipcFailure } from "./result";
 
 import {
   createTodoInputSchema,
@@ -8,23 +11,17 @@ import {
   updateTodoInputSchema,
 } from "../../shared/validation/todo.schema";
 
-import { registerNativeIPC } from "./native.ipc";
-import { assertTrustedIPCEvent } from "../security";
 
 function notifyTodoChanged() {
   for (const window of BrowserWindow.getAllWindows()) {
-    window.webContents.send("todo:changed");
+    window.webContents.send(IPC_CHANNELS.TODO.EVENTS.CHANGED);
   }
 }
 
 export function registerTodoIPC() {
-  registerNativeIPC();
-
   const todoService = getTodoService();
 
-  ipcMain.handle("todo:get-all", async (event) => {
-    assertTrustedIPCEvent(event);
-
+  registerSecureIpcHandler(IPC_CHANNELS.TODO.GET_ALL, async (event) => {
     try {
       const todos = todoService.getAll();
 
@@ -33,29 +30,15 @@ export function registerTodoIPC() {
         data: todos,
       };
     } catch {
-      return {
-        success: false,
-        error: {
-          code: "INTERNAL_ERROR",
-          message: "Failed to get todos",
-        },
-      };
+      return ipcFailure("INTERNAL_ERROR", "Failed to get todos");
     }
   });
 
-  ipcMain.handle("todo:get-by-id", async (event, rawId: unknown) => {
-    assertTrustedIPCEvent(event);
-
+  registerSecureIpcHandler(IPC_CHANNELS.TODO.GET_BY_ID, async (event, rawId: unknown) => {
     const validation = todoIdSchema.safeParse(rawId);
 
     if (!validation.success) {
-      return {
-        success: false,
-        error: {
-          code: "INVALID_TODO_ID",
-          message: "Invalid todo id",
-        },
-      };
+      return ipcFailure("INVALID_TODO_ID", "Invalid todo id");
     }
 
     try {
@@ -66,29 +49,18 @@ export function registerTodoIPC() {
         data: todo,
       };
     } catch {
-      return {
-        success: false,
-        error: {
-          code: "INTERNAL_ERROR",
-          message: "Failed to get todo",
-        },
-      };
+      return ipcFailure("INTERNAL_ERROR", "Failed to get todo");
     }
   });
 
-  ipcMain.handle("todo:create", async (event, rawInput: unknown) => {
-    assertTrustedIPCEvent(event);
-
+  registerSecureIpcHandler(IPC_CHANNELS.TODO.CREATE, async (event, rawInput: unknown) => {
     const validation = createTodoInputSchema.safeParse(rawInput);
 
     if (!validation.success) {
-      return {
-        success: false,
-        error: {
-          code: "INVALID_TODO",
-          message: validation.error.issues[0]?.message ?? "Invalid todo",
-        },
-      };
+      return ipcFailure(
+        "INVALID_TODO",
+        validation.error.issues[0]?.message ?? "Invalid todo",
+      );
     }
 
     try {
@@ -101,42 +73,25 @@ export function registerTodoIPC() {
         data: todo,
       };
     } catch {
-      return {
-        success: false,
-        error: {
-          code: "INTERNAL_ERROR",
-          message: "Failed to create todo",
-        },
-      };
+      return ipcFailure("INTERNAL_ERROR", "Failed to create todo");
     }
   });
 
-  ipcMain.handle("todo:update", async (event, rawInput: unknown) => {
-    assertTrustedIPCEvent(event);
-
+  registerSecureIpcHandler(IPC_CHANNELS.TODO.UPDATE, async (event, rawInput: unknown) => {
     const validation = updateTodoInputSchema.safeParse(rawInput);
 
     if (!validation.success) {
-      return {
-        success: false,
-        error: {
-          code: "INVALID_TODO",
-          message: validation.error.issues[0]?.message ?? "Invalid todo",
-        },
-      };
+      return ipcFailure(
+        "INVALID_TODO",
+        validation.error.issues[0]?.message ?? "Invalid todo",
+      );
     }
 
     try {
       const todo = todoService.update(validation.data);
 
       if (!todo) {
-        return {
-          success: false,
-          error: {
-            code: "TODO_NOT_FOUND",
-            message: "Todo not found",
-          },
-        };
+        return ipcFailure("TODO_NOT_FOUND", "Todo not found");
       }
 
       notifyTodoChanged();
@@ -146,29 +101,15 @@ export function registerTodoIPC() {
         data: todo,
       };
     } catch {
-      return {
-        success: false,
-        error: {
-          code: "INTERNAL_ERROR",
-          message: "Failed to update todo",
-        },
-      };
+      return ipcFailure("INTERNAL_ERROR", "Failed to update todo");
     }
   });
 
-  ipcMain.handle("todo:delete", async (event, rawId: unknown) => {
-    assertTrustedIPCEvent(event);
-
+  registerSecureIpcHandler(IPC_CHANNELS.TODO.DELETE, async (event, rawId: unknown) => {
     const validation = todoIdSchema.safeParse(rawId);
 
     if (!validation.success) {
-      return {
-        success: false,
-        error: {
-          code: "INVALID_TODO_ID",
-          message: "Invalid todo id",
-        },
-      };
+      return ipcFailure("INVALID_TODO_ID", "Invalid todo id");
     }
 
     try {
@@ -181,13 +122,7 @@ export function registerTodoIPC() {
         data: null,
       };
     } catch {
-      return {
-        success: false,
-        error: {
-          code: "INTERNAL_ERROR",
-          message: "Failed to delete todo",
-        },
-      };
+      return ipcFailure("INTERNAL_ERROR", "Failed to delete todo");
     }
   });
 }

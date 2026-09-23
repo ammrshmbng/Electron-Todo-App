@@ -1,4 +1,4 @@
-import { BrowserWindow, app, dialog, ipcMain } from "electron";
+import { BrowserWindow, app, dialog } from "electron";
 
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -8,12 +8,14 @@ import { getTodoService } from "../services/todo.service";
 import { todoFileSchema } from "../../shared/validation/todo.schema";
 
 import type { Todo } from "../../shared/types/todo";
+import { IPC_CHANNELS } from "../../shared/ipc/channels";
+import { registerSecureIpcHandler } from "./register";
+import { ipcFailure } from "./result";
 import type { IPCResult } from "../../shared/contracts/result";
-import { assertTrustedIPCEvent } from "../security";
 
 function notifyTodoChanged() {
   for (const window of BrowserWindow.getAllWindows()) {
-    window.webContents.send("todo:changed");
+    window.webContents.send(IPC_CHANNELS.TODO.EVENTS.CHANGED);
   }
 }
 
@@ -27,13 +29,7 @@ async function importTodoFileFromPath(
 ): Promise<IPCResult<{ count: number }>> {
   try {
     if (path.extname(filePath).toLowerCase() !== ".json") {
-      return {
-        success: false,
-        error: {
-          code: "INVALID_FILE_TYPE",
-          message: "Only JSON files can be imported",
-        },
-      };
+      return ipcFailure("INVALID_FILE_TYPE", "Only JSON files can be imported");
     }
 
     const content = await fs.readFile(filePath, "utf-8");
@@ -55,13 +51,10 @@ async function importTodoFileFromPath(
     const validation = todoFileSchema.safeParse(rawData);
 
     if (!validation.success) {
-      return {
-        success: false,
-        error: {
-          code: "INVALID_TODO_FILE",
-          message: "Selected file does not contain valid Todo data",
-        },
-      };
+      return ipcFailure(
+        "INVALID_TODO_FILE",
+        "Selected file does not contain valid Todo data",
+      );
     }
 
     const todos: Todo[] = validation.data;
@@ -77,21 +70,15 @@ async function importTodoFileFromPath(
       },
     };
   } catch {
-    return {
-      success: false,
-      error: {
-        code: "FILE_READ_ERROR",
-        message: "Failed to import todos",
-      },
-    };
+    return ipcFailure("FILE_READ_ERROR", "Failed to import todos");
   }
 }
 
 export function registerTodoFileIPC() {
   const todoService = getTodoService();
 
-  ipcMain.handle(
-    "todo:export-file",
+  registerSecureIpcHandler(
+    IPC_CHANNELS.TODO.EXPORT_FILE,
     async (
       event,
     ): Promise<
@@ -100,8 +87,7 @@ export function registerTodoFileIPC() {
         count: number;
       }>
     > => {
-      assertTrustedIPCEvent(event);
-      try {
+        try {
         const todos = todoService.getAll();
 
         const window = getWindowFromEvent(event);
@@ -145,19 +131,13 @@ export function registerTodoFileIPC() {
           },
         };
       } catch {
-        return {
-          success: false,
-          error: {
-            code: "FILE_WRITE_ERROR",
-            message: "Failed to export todos",
-          },
-        };
+        return ipcFailure("FILE_WRITE_ERROR", "Failed to export todos");
       }
     },
   );
 
-  ipcMain.handle(
-    "todo:import-file",
+  registerSecureIpcHandler(
+    IPC_CHANNELS.TODO.IMPORT_FILE,
     async (
       event,
     ): Promise<
@@ -194,31 +174,18 @@ export function registerTodoFileIPC() {
       const filePath = result.filePaths[0];
 
       if (!filePath) {
-        return {
-          success: false,
-          error: {
-            code: "FILE_NOT_FOUND",
-            message: "No file was selected",
-          },
-        };
+        return ipcFailure("FILE_NOT_FOUND", "No file was selected");
       }
 
       return importTodoFileFromPath(filePath, todoService);
     },
   );
 
-  ipcMain.handle(
-    "todo:import-file-path",
+  registerSecureIpcHandler(
+    IPC_CHANNELS.TODO.IMPORT_FILE_PATH,
     async (event, filePath: string): Promise<IPCResult<{ count: number }>> => {
-      assertTrustedIPCEvent(event);
-      if (!filePath) {
-        return {
-          success: false,
-          error: {
-            code: "FILE_NOT_FOUND",
-            message: "No file path was provided",
-          },
-        };
+        if (!filePath) {
+        return ipcFailure("FILE_NOT_FOUND", "No file path was provided");
       }
 
       return importTodoFileFromPath(filePath, todoService);

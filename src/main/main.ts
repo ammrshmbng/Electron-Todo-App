@@ -3,9 +3,7 @@ import path from "node:path";
 
 import { initializeDatabase } from "./database/database";
 
-import { registerTodoIPC } from "./ipc/todo.ipc";
-import { registerTodoFileIPC } from "./ipc/todo-file.ipc";
-import { registerWindowIPC } from "./ipc/window.ipc";
+import { registerAllIPC } from "./ipc";
 
 import {
   createMainWindow,
@@ -40,9 +38,7 @@ app.whenReady().then(async () => {
 
   initializeDatabase();
 
-  registerTodoIPC();
-  registerTodoFileIPC();
-  registerWindowIPC(loadRenderer);
+  registerAllIPC(loadRenderer);
 
   createMainWindow(loadRenderer);
   createTray();

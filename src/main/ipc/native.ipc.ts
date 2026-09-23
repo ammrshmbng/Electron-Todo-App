@@ -3,15 +3,15 @@ import {
   Menu,
   Notification,
   dialog,
-  ipcMain,
   shell,
   app,
   clipboard,
 } from "electron";
 
 import { todoContextMenuInputSchema } from "../../shared/validation/todo.schema";
+import { IPC_CHANNELS } from "../../shared/ipc/channels";
+import { registerSecureIpcHandler } from "./register";
 import { dispatchAppCommand } from "../commands/app-command";
-import { assertTrustedIPCEvent } from "../security";
 
 const todoFileDialogOptions: Electron.OpenDialogOptions = {
   title: "Open Todo File",
@@ -42,7 +42,7 @@ function sendTodoContextMenuAction(
     return;
   }
 
-  sender.send("todo:context-menu-action", {
+  sender.send(IPC_CHANNELS.TODO.EVENTS.CONTEXT_MENU_ACTION, {
     action,
     todoId,
   });
@@ -53,8 +53,8 @@ function getBrowserWindow(window: Electron.BaseWindow | null) {
 }
 
 export function registerNativeIPC() {
-  ipcMain.handle(
-    "native:confirm",
+  registerSecureIpcHandler(
+    IPC_CHANNELS.NATIVE.CONFIRM,
     async (
       event,
       options: {
@@ -63,9 +63,7 @@ export function registerNativeIPC() {
         detail?: string;
       },
     ) => {
-      assertTrustedIPCEvent(event);
-
-      const window = getWindowFromEvent(event);
+        const window = getWindowFromEvent(event);
 
       const messageBoxOptions = {
         type: "question" as const,
@@ -85,9 +83,7 @@ export function registerNativeIPC() {
     },
   );
 
-  ipcMain.handle("native:open-file", async (event) => {
-    assertTrustedIPCEvent(event);
-
+  registerSecureIpcHandler(IPC_CHANNELS.NATIVE.OPEN_FILE, async (event) => {
     const window = getWindowFromEvent(event);
 
     const result = window
@@ -101,8 +97,8 @@ export function registerNativeIPC() {
     return result.filePaths[0] ?? null;
   });
 
-  ipcMain.handle(
-    "native:notify",
+  registerSecureIpcHandler(
+    IPC_CHANNELS.NATIVE.NOTIFY,
     async (
       event,
       options: {
@@ -110,9 +106,7 @@ export function registerNativeIPC() {
         body: string;
       },
     ) => {
-      assertTrustedIPCEvent(event);
-
-      if (!Notification.isSupported()) {
+        if (!Notification.isSupported()) {
         return false;
       }
 
@@ -125,8 +119,7 @@ export function registerNativeIPC() {
     },
   );
 
-  ipcMain.handle("native:open-data-folder", async (event) => {
-    assertTrustedIPCEvent(event);
+  registerSecureIpcHandler(IPC_CHANNELS.NATIVE.OPEN_DATA_FOLDER, async (event) => {
     const dataPath = app.getPath("userData");
 
     const error = await shell.openPath(dataPath);
@@ -138,8 +131,7 @@ export function registerNativeIPC() {
     };
   });
 
-  ipcMain.handle("native:show-database", async (event) => {
-    assertTrustedIPCEvent(event);
+  registerSecureIpcHandler(IPC_CHANNELS.NATIVE.SHOW_DATABASE, async (event) => {
     const databasePath = app.getPath("userData");
 
     const databaseFilePath = `${databasePath}/todos.db`;
@@ -149,9 +141,7 @@ export function registerNativeIPC() {
     return databaseFilePath;
   });
 
-  ipcMain.handle("native:open-external", async (event, url: string) => {
-    assertTrustedIPCEvent(event);
-
+  registerSecureIpcHandler(IPC_CHANNELS.NATIVE.OPEN_EXTERNAL, async (event, url: string) => {
     try {
       const parsedUrl = new URL(url);
 
@@ -167,8 +157,7 @@ export function registerNativeIPC() {
     }
   });
 
-  ipcMain.handle("native:get-app-info", async (event) => {
-    assertTrustedIPCEvent(event);
+  registerSecureIpcHandler(IPC_CHANNELS.NATIVE.GET_APP_INFO, async (event) => {
     return {
       name: app.getName(),
       version: app.getVersion(),
@@ -189,21 +178,17 @@ export function registerNativeIPC() {
     };
   });
 
-  ipcMain.handle("native:copy-text", async (event, text: string) => {
-    assertTrustedIPCEvent(event);
+  registerSecureIpcHandler(IPC_CHANNELS.NATIVE.COPY_TEXT, async (event, text: string) => {
     clipboard.writeText(text);
 
     return true;
   });
 
-  ipcMain.handle("native:read-clipboard", async (event) => {
-    assertTrustedIPCEvent(event);
+  registerSecureIpcHandler(IPC_CHANNELS.NATIVE.READ_CLIPBOARD, async (event) => {
     return clipboard.readText();
   });
 
-  ipcMain.handle("todo:show-context-menu", async (event, rawInput: unknown) => {
-    assertTrustedIPCEvent(event);
-
+  registerSecureIpcHandler(IPC_CHANNELS.TODO.SHOW_CONTEXT_MENU, async (event, rawInput: unknown) => {
     const validation = todoContextMenuInputSchema.safeParse(rawInput);
 
     if (!validation.success) {

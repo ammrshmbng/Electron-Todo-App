@@ -1,24 +1,25 @@
 import { contextBridge, ipcRenderer, webUtils } from "electron";
+import { IPC_CHANNELS } from "../shared/ipc/channels";
 
 contextBridge.exposeInMainWorld("todoAPI", {
   getAll: () => {
-    return ipcRenderer.invoke("todo:get-all");
+    return ipcRenderer.invoke(IPC_CHANNELS.TODO.GET_ALL);
   },
 
   getById: (id: string) => {
-    return ipcRenderer.invoke("todo:get-by-id", id);
+    return ipcRenderer.invoke(IPC_CHANNELS.TODO.GET_BY_ID, id);
   },
 
   create: (input: { title: string }) => {
-    return ipcRenderer.invoke("todo:create", input);
+    return ipcRenderer.invoke(IPC_CHANNELS.TODO.CREATE, input);
   },
 
   update: (input: { id: string; title: string; completed: boolean }) => {
-    return ipcRenderer.invoke("todo:update", input);
+    return ipcRenderer.invoke(IPC_CHANNELS.TODO.UPDATE, input);
   },
 
   delete: (id: string) => {
-    return ipcRenderer.invoke("todo:delete", id);
+    return ipcRenderer.invoke(IPC_CHANNELS.TODO.DELETE, id);
   },
 
   onChanged: (callback: () => void) => {
@@ -26,15 +27,15 @@ contextBridge.exposeInMainWorld("todoAPI", {
       callback();
     };
 
-    ipcRenderer.on("todo:changed", listener);
+    ipcRenderer.on(IPC_CHANNELS.TODO.EVENTS.CHANGED, listener);
 
     return () => {
-      ipcRenderer.removeListener("todo:changed", listener);
+      ipcRenderer.removeListener(IPC_CHANNELS.TODO.EVENTS.CHANGED, listener);
     };
   },
 
   openTodoDetail: (todoId: string) => {
-    return ipcRenderer.invoke("window:open-todo-detail", todoId);
+    return ipcRenderer.invoke(IPC_CHANNELS.WINDOW.OPEN_TODO_DETAIL, todoId);
   },
 
   onTodoDetailId: (callback: (todoId: string) => void) => {
@@ -42,47 +43,47 @@ contextBridge.exposeInMainWorld("todoAPI", {
       callback(todoId);
     };
 
-    ipcRenderer.on("todo:detail-id", listener);
+    ipcRenderer.on(IPC_CHANNELS.TODO.EVENTS.DETAIL_ID, listener);
 
     return () => {
-      ipcRenderer.removeListener("todo:detail-id", listener);
+      ipcRenderer.removeListener(IPC_CHANNELS.TODO.EVENTS.DETAIL_ID, listener);
     };
   },
 
   confirm: (options: { title: string; message: string; detail?: string }) => {
-    return ipcRenderer.invoke("native:confirm", options);
+    return ipcRenderer.invoke(IPC_CHANNELS.NATIVE.CONFIRM, options);
   },
 
   openFile: () => {
-    return ipcRenderer.invoke("native:open-file");
+    return ipcRenderer.invoke(IPC_CHANNELS.NATIVE.OPEN_FILE);
   },
 
   notify: (options: { title: string; body: string }) => {
-    return ipcRenderer.invoke("native:notify", options);
+    return ipcRenderer.invoke(IPC_CHANNELS.NATIVE.NOTIFY, options);
   },
 
   openDataFolder: () => {
-    return ipcRenderer.invoke("native:open-data-folder");
+    return ipcRenderer.invoke(IPC_CHANNELS.NATIVE.OPEN_DATA_FOLDER);
   },
 
   showDatabase: () => {
-    return ipcRenderer.invoke("native:show-database");
+    return ipcRenderer.invoke(IPC_CHANNELS.NATIVE.SHOW_DATABASE);
   },
 
   openExternal: (url: string) => {
-    return ipcRenderer.invoke("native:open-external", url);
+    return ipcRenderer.invoke(IPC_CHANNELS.NATIVE.OPEN_EXTERNAL, url);
   },
 
   getAppInfo: () => {
-    return ipcRenderer.invoke("native:get-app-info");
+    return ipcRenderer.invoke(IPC_CHANNELS.NATIVE.GET_APP_INFO);
   },
 
   exportFile: () => {
-    return ipcRenderer.invoke("todo:export-file");
+    return ipcRenderer.invoke(IPC_CHANNELS.TODO.EXPORT_FILE);
   },
 
   importFile: () => {
-    return ipcRenderer.invoke("todo:import-file");
+    return ipcRenderer.invoke(IPC_CHANNELS.TODO.IMPORT_FILE);
   },
 
   importDroppedFile: (file: unknown) => {
@@ -99,7 +100,7 @@ contextBridge.exposeInMainWorld("todoAPI", {
         });
       }
 
-      return ipcRenderer.invoke("todo:import-file-path", filePath);
+      return ipcRenderer.invoke(IPC_CHANNELS.TODO.IMPORT_FILE_PATH, filePath);
     } catch {
       return Promise.resolve({
         success: false as const,
@@ -112,7 +113,7 @@ contextBridge.exposeInMainWorld("todoAPI", {
   },
 
   showTodoContextMenu: (input: { todoId: string; completed: boolean }) => {
-    return ipcRenderer.invoke("todo:show-context-menu", input);
+    return ipcRenderer.invoke(IPC_CHANNELS.TODO.SHOW_CONTEXT_MENU, input);
   },
 
   onTodoContextMenuAction: (
@@ -141,35 +142,35 @@ contextBridge.exposeInMainWorld("todoAPI", {
       callback(event);
     };
 
-    ipcRenderer.on("todo:context-menu-action", listener);
+    ipcRenderer.on(IPC_CHANNELS.TODO.EVENTS.CONTEXT_MENU_ACTION, listener);
 
     return () => {
-      ipcRenderer.removeListener("todo:context-menu-action", listener);
+      ipcRenderer.removeListener(IPC_CHANNELS.TODO.EVENTS.CONTEXT_MENU_ACTION, listener);
     };
   },
 
   copyText: (text: string) => {
-    return ipcRenderer.invoke("native:copy-text", text);
+    return ipcRenderer.invoke(IPC_CHANNELS.NATIVE.COPY_TEXT, text);
   },
 
   readClipboardText: () => {
-    return ipcRenderer.invoke("native:read-clipboard");
+    return ipcRenderer.invoke(IPC_CHANNELS.NATIVE.READ_CLIPBOARD);
   },
 
   reloadRenderer: () => {
-    return ipcRenderer.invoke("webcontents:reload");
+    return ipcRenderer.invoke(IPC_CHANNELS.WEBCONTENTS.RELOAD);
   },
 
   openDevTools: () => {
-    return ipcRenderer.invoke("webcontents:open-devtools");
+    return ipcRenderer.invoke(IPC_CHANNELS.WEBCONTENTS.OPEN_DEVTOOLS);
   },
 
   toggleDevTools: () => {
-    return ipcRenderer.invoke("webcontents:toggle-devtools");
+    return ipcRenderer.invoke(IPC_CHANNELS.WEBCONTENTS.TOGGLE_DEVTOOLS);
   },
 
   getWebContentsInfo: () => {
-    return ipcRenderer.invoke("webcontents:get-info");
+    return ipcRenderer.invoke(IPC_CHANNELS.WEBCONTENTS.GET_INFO);
   },
 
   onAppCommand: (callback: (command: "new-todo" | "focus-search") => void) => {
@@ -180,10 +181,10 @@ contextBridge.exposeInMainWorld("todoAPI", {
       callback(command);
     };
 
-    ipcRenderer.on("app:command", listener);
+    ipcRenderer.on(IPC_CHANNELS.APP.EVENTS.COMMAND, listener);
 
     return () => {
-      ipcRenderer.removeListener("app:command", listener);
+      ipcRenderer.removeListener(IPC_CHANNELS.APP.EVENTS.COMMAND, listener);
     };
   },
 });
