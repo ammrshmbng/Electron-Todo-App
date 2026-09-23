@@ -40,6 +40,15 @@ export interface TodoContextMenuEvent {
   todoId: string;
 }
 
+export interface WebContentsInfo {
+  id: number;
+  url: string;
+  title: string;
+  isLoading: boolean;
+  isDevToolsOpened: boolean;
+  windowId: number | null;
+}
+
 export interface TodoAPI {
   getAll(): Promise<IPCResult<Todo[]>>;
 
@@ -78,6 +87,14 @@ export interface TodoAPI {
   openExternal(url: string): Promise<boolean>;
 
   getAppInfo(): Promise<AppInfo>;
+
+  reloadRenderer(): Promise<void>;
+
+  openDevTools(): Promise<void>;
+
+  toggleDevTools(): Promise<void>;
+
+  getWebContentsInfo(): Promise<WebContentsInfo>;
 
   copyText(text: string): Promise<boolean>;
 

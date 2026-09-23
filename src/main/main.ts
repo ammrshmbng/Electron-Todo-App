@@ -14,8 +14,11 @@ import {
   saveWindowStates,
 } from "./windows/window-manager";
 import { createTray, destroyTray } from "./tray";
+import { registerWebContents } from "./webcontents";
 
 let isQuitting = false;
+
+registerWebContents();
 
 async function loadRenderer(window: BrowserWindow) {
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {

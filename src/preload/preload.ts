@@ -156,6 +156,22 @@ contextBridge.exposeInMainWorld("todoAPI", {
     return ipcRenderer.invoke("native:read-clipboard");
   },
 
+  reloadRenderer: () => {
+    return ipcRenderer.invoke("webcontents:reload");
+  },
+
+  openDevTools: () => {
+    return ipcRenderer.invoke("webcontents:open-devtools");
+  },
+
+  toggleDevTools: () => {
+    return ipcRenderer.invoke("webcontents:toggle-devtools");
+  },
+
+  getWebContentsInfo: () => {
+    return ipcRenderer.invoke("webcontents:get-info");
+  },
+
   onAppCommand: (callback: (command: "new-todo" | "focus-search") => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,

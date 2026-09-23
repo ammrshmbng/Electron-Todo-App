@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import type { AppInfo } from "../../shared/contracts/todo-api";
+import type { AppInfo, WebContentsInfo } from "../../shared/contracts/todo-api";
 
 export default function SettingsPage() {
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
@@ -8,6 +8,11 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
 
   const [error, setError] = useState<string | null>(null);
+
+  const [webContentsInfo, setWebContentsInfo] =
+    useState<WebContentsInfo | null>(null);
+
+  const [webContentsError, setWebContentsError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadAppInfo() {
@@ -24,6 +29,30 @@ export default function SettingsPage() {
 
     void loadAppInfo();
   }, []);
+
+  useEffect(() => {
+    void loadWebContentsInfo();
+  }, []);
+
+  const loadWebContentsInfo = async () => {
+    try {
+      const result = await window.todoAPI.getWebContentsInfo();
+
+      setWebContentsInfo(result);
+      setWebContentsError(null);
+    } catch {
+      setWebContentsError("Failed to load WebContents information.");
+    }
+  };
+
+  const handleReloadRenderer = async () => {
+    await window.todoAPI.reloadRenderer();
+  };
+
+  const handleToggleDevTools = async () => {
+    await window.todoAPI.toggleDevTools();
+    await loadWebContentsInfo();
+  };
 
   const handleOpenDataFolder = async () => {
     const result = await window.todoAPI.openDataFolder();
@@ -183,6 +212,72 @@ export default function SettingsPage() {
 
             <strong>Logs</strong>
             <span>{appInfo.paths.logs}</span>
+          </div>
+        )}
+      </section>
+
+      <hr
+        style={{
+          margin: "32px 0",
+        }}
+      />
+
+      <section>
+        <h2>WebContents</h2>
+
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            flexWrap: "wrap",
+            marginTop: 16,
+            marginBottom: 16,
+          }}
+        >
+          <button onClick={() => void handleReloadRenderer()}>
+            Reload Renderer
+          </button>
+
+          <button onClick={() => void window.todoAPI.openDevTools()}>
+            Open DevTools
+          </button>
+
+          <button onClick={() => void handleToggleDevTools()}>
+            Toggle DevTools
+          </button>
+
+          <button onClick={() => void loadWebContentsInfo()}>
+            Refresh Info
+          </button>
+        </div>
+
+        {webContentsError && <p style={{ color: "red" }}>{webContentsError}</p>}
+
+        {webContentsInfo && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "180px 1fr",
+              gap: 10,
+            }}
+          >
+            <strong>WebContents ID</strong>
+            <span>{webContentsInfo.id}</span>
+
+            <strong>BrowserWindow ID</strong>
+            <span>{webContentsInfo.windowId ?? "None"}</span>
+
+            <strong>Loading</strong>
+            <span>{webContentsInfo.isLoading ? "Yes" : "No"}</span>
+
+            <strong>DevTools</strong>
+            <span>{webContentsInfo.isDevToolsOpened ? "Open" : "Closed"}</span>
+
+            <strong>URL</strong>
+            <span>{webContentsInfo.url}</span>
+
+            <strong>Title</strong>
+            <span>{webContentsInfo.title}</span>
           </div>
         )}
       </section>
