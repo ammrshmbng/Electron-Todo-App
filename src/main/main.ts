@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from "electron";
+import { app, autoUpdater, BrowserWindow } from "electron";
 import path from "node:path";
 
 import { initializeDatabase } from "./database/database";
@@ -14,6 +14,7 @@ import {
 import { createTray, destroyTray } from "./tray";
 import { registerWebContents } from "./webcontents";
 import { configureSessionSecurity } from "./security";
+import { disposeUpdater, initializeUpdater } from "./updater";
 
 let isQuitting = false;
 
@@ -33,6 +34,8 @@ async function loadRenderer(window: BrowserWindow) {
 
 app.whenReady().then(async () => {
   configureSessionSecurity();
+
+  initializeUpdater();
 
   await initializeWindowState();
 
@@ -75,6 +78,11 @@ app.whenReady().then(async () => {
   });
 });
 
+autoUpdater.on("before-quit-for-update", () => {
+  isQuitting = true;
+  void saveWindowStates();
+});
+
 app.on("before-quit", (event) => {
   if (isQuitting) {
     return;
@@ -89,6 +97,7 @@ app.on("before-quit", (event) => {
 });
 
 app.on("will-quit", () => {
+  disposeUpdater();
   destroyTray();
 });
 

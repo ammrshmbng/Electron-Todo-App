@@ -50,6 +50,14 @@ export const IPC_CHANNELS = {
       COMMAND: "app:command",
     },
   },
+  UPDATER: {
+    GET_STATE: "updater:get-state",
+    CHECK: "updater:check",
+    INSTALL: "updater:install",
+    EVENTS: {
+      STATE: "updater:state",
+    },
+  },
 } as const;
 
 export type IPCInvokeChannel =
@@ -62,5 +70,9 @@ export type IPCInvokeChannel =
   | (typeof IPC_CHANNELS.WEBCONTENTS)[keyof typeof IPC_CHANNELS.WEBCONTENTS]
   | (typeof IPC_CHANNELS.BACKGROUND)[Exclude<
       keyof typeof IPC_CHANNELS.BACKGROUND,
+      "EVENTS"
+    >]
+  | (typeof IPC_CHANNELS.UPDATER)[Exclude<
+      keyof typeof IPC_CHANNELS.UPDATER,
       "EVENTS"
     >];

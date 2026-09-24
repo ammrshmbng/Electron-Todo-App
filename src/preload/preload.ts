@@ -309,4 +309,63 @@ contextBridge.exposeInMainWorld("todoAPI", {
       );
     };
   },
+
+  getUpdateState: () => {
+    return ipcRenderer.invoke(IPC_CHANNELS.UPDATER.GET_STATE);
+  },
+
+  checkForUpdates: () => {
+    return ipcRenderer.invoke(IPC_CHANNELS.UPDATER.CHECK);
+  },
+
+  installUpdate: () => {
+    return ipcRenderer.invoke(IPC_CHANNELS.UPDATER.INSTALL);
+  },
+
+  onUpdateState: (
+    callback: (state: {
+      status:
+        | "idle"
+        | "checking"
+        | "available"
+        | "downloaded"
+        | "not-available"
+        | "unsupported"
+        | "not-configured"
+        | "error";
+      version: string | null;
+      message: string;
+    }) => void,
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      state: {
+        status:
+          | "idle"
+          | "checking"
+          | "available"
+          | "downloaded"
+          | "not-available"
+          | "unsupported"
+          | "not-configured"
+          | "error";
+        version: string | null;
+        message: string;
+      },
+    ) => {
+      callback(state);
+    };
+
+    ipcRenderer.on(
+      IPC_CHANNELS.UPDATER.EVENTS.STATE,
+      listener,
+    );
+
+    return () => {
+      ipcRenderer.removeListener(
+        IPC_CHANNELS.UPDATER.EVENTS.STATE,
+        listener,
+      );
+    };
+  },
 });

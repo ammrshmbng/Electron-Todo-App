@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import type {
   AppInfo,
+  AppUpdateState,
   BackgroundTaskProgress,
   TodoScanReport,
   WebContentsInfo,
@@ -22,6 +23,9 @@ export default function SettingsPage() {
   const [backgroundReport, setBackgroundReport] =
     useState<TodoScanReport | null>(null);
   const [backgroundError, setBackgroundError] = useState<string | null>(null);
+
+  const [updateState, setUpdateState] = useState<AppUpdateState | null>(null);
+  const [updateChecking, setUpdateChecking] = useState(false);
 
   useEffect(() => {
     async function loadAppInfo() {
@@ -78,6 +82,22 @@ export default function SettingsPage() {
       unsubscribeError();
     };
   }, [backgroundTaskId]);
+
+  useEffect(() => {
+    async function loadUpdateState() {
+      const state = await window.todoAPI.getUpdateState();
+      setUpdateState(state);
+    }
+
+    void loadUpdateState();
+
+    const unsubscribe = window.todoAPI.onUpdateState((state) => {
+      setUpdateState(state);
+      setUpdateChecking(state.status === "checking");
+    });
+
+    return unsubscribe;
+  }, []);
 
   const loadWebContentsInfo = async () => {
     try {
@@ -174,13 +194,23 @@ export default function SettingsPage() {
       return;
     }
 
-    const result = await window.todoAPI.cancelBackgroundTask(
-      backgroundTaskId,
-    );
+    const result = await window.todoAPI.cancelBackgroundTask(backgroundTaskId);
 
     if (!result.success) {
       setBackgroundError(result.error.message);
     }
+  };
+
+  const handleCheckForUpdates = async () => {
+    setUpdateChecking(true);
+    const state = await window.todoAPI.checkForUpdates();
+    setUpdateState(state);
+    setUpdateChecking(state.status === "checking");
+  };
+
+  const handleInstallUpdate = async () => {
+    const state = await window.todoAPI.installUpdate();
+    setUpdateState(state);
   };
 
   return (
@@ -215,11 +245,48 @@ export default function SettingsPage() {
         <button onClick={() => void handleImport()}>Import Todos</button>
       </div>
 
-      <hr
-        style={{
-          margin: "32px 0",
-        }}
-      />
+      <hr style={{ margin: "32px 0" }} />
+
+      <section>
+        <h2>Updates</h2>
+
+        <p>
+          {updateState?.message ?? "Loading updater state..."}
+        </p>
+
+        {updateState && (
+          <p>
+            Status: <strong>{updateState.status}</strong>
+            {updateState.version
+              ? ` — ${updateState.version}`
+              : ""}
+          </p>
+        )}
+
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            marginTop: 12,
+          }}
+        >
+          <button
+            disabled={updateChecking}
+            onClick={() => void handleCheckForUpdates()}
+          >
+            {updateChecking ? "Checking..." : "Check for Updates"}
+          </button>
+
+          <button
+            disabled={updateState?.status !== "downloaded"}
+            onClick={() => void handleInstallUpdate()}
+          >
+            Restart & Install Update
+          </button>
+        </div>
+      </section>
+
+      <hr style={{ margin: "32px 0" }} />
 
       <section>
         <h2>Background Tasks</h2>
@@ -311,11 +378,7 @@ export default function SettingsPage() {
         )}
       </section>
 
-      <hr
-        style={{
-          margin: "32px 0",
-        }}
-      />
+      <hr style={{ margin: "32px 0" }} />
 
       <section>
         <h2>Application Information</h2>
@@ -323,13 +386,7 @@ export default function SettingsPage() {
         {loading && <p>Loading...</p>}
 
         {error && (
-          <p
-            style={{
-              color: "red",
-            }}
-          >
-            {error}
-          </p>
+          <p style={{ color: "red" }}>{error}</p>
         )}
 
         {appInfo && (
@@ -383,11 +440,7 @@ export default function SettingsPage() {
         )}
       </section>
 
-      <hr
-        style={{
-          margin: "32px 0",
-        }}
-      />
+      <hr style={{ margin: "32px 0" }} />
 
       <section>
         <h2>WebContents</h2>
@@ -440,9 +493,7 @@ export default function SettingsPage() {
             <span>{webContentsInfo.isLoading ? "Yes" : "No"}</span>
 
             <strong>DevTools</strong>
-            <span>
-              {webContentsInfo.isDevToolsOpened ? "Open" : "Closed"}
-            </span>
+            <span>{webContentsInfo.isDevToolsOpened ? "Open" : "Closed"}</span>
 
             <strong>URL</strong>
             <span>{webContentsInfo.url}</span>

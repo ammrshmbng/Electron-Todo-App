@@ -82,6 +82,22 @@ export interface BackgroundTaskError {
   message: string;
 }
 
+export type AppUpdateStatus =
+  | "idle"
+  | "checking"
+  | "available"
+  | "downloaded"
+  | "not-available"
+  | "unsupported"
+  | "not-configured"
+  | "error";
+
+export interface AppUpdateState {
+  status: AppUpdateStatus;
+  version: string | null;
+  message: string;
+}
+
 export interface TodoAPI {
   getAll(): Promise<IPCResult<Todo[]>>;
 
@@ -168,5 +184,15 @@ export interface TodoAPI {
 
   onBackgroundError(
     callback: (event: BackgroundTaskError) => void,
+  ): () => void;
+
+  getUpdateState(): Promise<AppUpdateState>;
+
+  checkForUpdates(): Promise<AppUpdateState>;
+
+  installUpdate(): Promise<AppUpdateState>;
+
+  onUpdateState(
+    callback: (state: AppUpdateState) => void,
   ): () => void;
 }
